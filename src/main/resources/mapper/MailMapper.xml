@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.intellectual.mapper.MailMapper">
+
+  <resultMap id="BaseResultMap" type="com.intellectual.model.entity.Mail">
+    <id column="id" jdbcType="INTEGER" property="id"/>
+    <result column="email" jdbcType="VARCHAR" property="email"/>
+    <result column="auth_code" jdbcType="VARCHAR" property="authCode"/>
+    <result column="smtp_host" jdbcType="VARCHAR" property="smtpHost"/>
+    <result column="smtp_port" jdbcType="INTEGER" property="smtpPort"/>
+  </resultMap>
+  <sql id="Base_Column_List">
+    id, email, auth_code, smtp_host, smtp_port
+  </sql>
+</mapper>

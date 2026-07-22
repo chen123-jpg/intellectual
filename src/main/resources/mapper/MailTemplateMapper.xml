@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.intellectual.mapper.MailTemplateMapper">
+
+  <resultMap id="BaseResultMap" type="com.intellectual.model.entity.MailTemplate">
+    <id column="id" jdbcType="BIGINT" property="id"/>
+    <result column="template_code" jdbcType="VARCHAR" property="templateCode"/>
+    <result column="template_name" jdbcType="VARCHAR" property="templateName"/>
+    <result column="subject" jdbcType="VARCHAR" property="subject"/>
+    <result column="default_attach_types" jdbcType="VARCHAR" property="defaultAttachTypes"/>
+    <result column="enabled" jdbcType="TINYINT" property="enabled"/>
+    <result column="create_time" jdbcType="TIMESTAMP" property="createTime"/>
+    <result column="update_time" jdbcType="TIMESTAMP" property="updateTime"/>
+  </resultMap>
+  <resultMap extends="BaseResultMap" id="ResultMapWithBLOBs" type="com.intellectual.model.entity.MailTemplate">
+    <result column="content" jdbcType="LONGVARCHAR" property="content"/>
+  </resultMap>
+  <sql id="Base_Column_List">
+    id, template_code, template_name, subject, default_attach_types, enabled, create_time, 
+	update_time
+  </sql>
+  <sql id="Blob_Column_List">
+    content
+  </sql>
+</mapper>

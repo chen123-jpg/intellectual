@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.intellectual.mapper.FeePaymentMapper">
+
+  <resultMap id="BaseResultMap" type="com.intellectual.model.entity.FeePayment">
+    <id column="id" jdbcType="BIGINT" property="id"/>
+    <result column="disclosure_id" jdbcType="BIGINT" property="disclosureId"/>
+    <result column="internal_no" jdbcType="VARCHAR" property="internalNo"/>
+    <result column="temp_no" jdbcType="VARCHAR" property="tempNo"/>
+    <result column="disclosure_name" jdbcType="VARCHAR" property="disclosureName"/>
+    <result column="applicant" jdbcType="VARCHAR" property="applicant"/>
+    <result column="fee_type" jdbcType="VARCHAR" property="feeType"/>
+    <result column="fee_amount" jdbcType="DECIMAL" property="feeAmount"/>
+    <result column="payment_deadline" jdbcType="DATE" property="paymentDeadline"/>
+    <result column="payment_date" jdbcType="DATE" property="paymentDate"/>
+    <result column="payment_status" jdbcType="VARCHAR" property="paymentStatus"/>
+    <result column="payer" jdbcType="VARCHAR" property="payer"/>
+    <result column="remark" jdbcType="VARCHAR" property="remark"/>
+    <result column="source" jdbcType="VARCHAR" property="source"/>
+    <result column="create_time" jdbcType="TIMESTAMP" property="createTime"/>
+    <result column="update_time" jdbcType="TIMESTAMP" property="updateTime"/>
+  </resultMap>
+  <sql id="Base_Column_List">
+    id, disclosure_id, internal_no, temp_no, disclosure_name, applicant, fee_type, 
+	fee_amount, payment_deadline, payment_date, payment_status, payer, remark, source, 
+	create_time, update_time
+  </sql>
+</mapper>

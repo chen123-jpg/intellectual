@@ -1,103 +1,133 @@
-// src/main/java/com/intellectual/service/impl/MailServiceImpl.java
 package com.intellectual.service.impl;
 
-import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.intellectual.mapper.MailMapper;
+import com.intellectual.exception.BusinessException;
+import com.intellectual.model.dto.Result;
 import com.intellectual.model.entity.Mail;
 import com.intellectual.model.entity.MailSendAttachment;
 import com.intellectual.model.entity.MailSendLog;
-import com.intellectual.model.enums.MailServerConfig;
+import com.intellectual.mapper.MailMapper;
+import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.intellectual.model.enums.MailSendStatus;
 import com.intellectual.security.LoginUser;
 import com.intellectual.service.MailSendAttachmentService;
 import com.intellectual.service.MailSendLogService;
 import com.intellectual.service.MailService;
-import jakarta.mail.MessagingException;
+import jakarta.annotation.PostConstruct;
 import jakarta.mail.internet.MimeMessage;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.core.io.ByteArrayResource;
-import org.springframework.core.io.FileSystemResource;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.javamail.JavaMailSenderImpl;
 import org.springframework.mail.javamail.MimeMessageHelper;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.util.UriComponentsBuilder;
 
-import java.io.IOException;
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
+import java.nio.file.Paths;
 import java.util.Date;
-import java.util.List;
 import java.util.Properties;
 
+/**
+ * 用户邮箱表 服务实现类
+ *
+ * @author 陈创
+ * @since 2026-07-23 19:09
+ */
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class MailServiceImpl extends ServiceImpl<MailMapper, Mail> implements MailService {
 
-    private final MailSendLogService mailSendLogService;
-    private final MailSendAttachmentService mailSendAttachmentService;
+    @Autowired
+    private MailSendAttachmentService mailSendAttachmentService;
 
-    @Override
-    public MailSendLog sendMail(LoginUser sender, String to, String cc, String subject, String text,
-                                List<MultipartFile> attachments) throws Exception {
-        return sendMailInternal(sender, to, cc, subject, text, attachments, null);
+    @Autowired
+    private MailSendLogService mailSendLogService;
+
+    @Autowired
+    private UploadFileServiceImpl uploadFileServiceImpl;
+
+    @Value("${app.upload.dir}")
+    private String uploadDir;
+
+    private Path uploadPath;
+
+    @PostConstruct
+    public void init() {
+        this.uploadPath = Paths.get(uploadDir).toAbsolutePath().normalize();
     }
 
-    @Override
-    public MailSendLog sendMailWithFiles(LoginUser sender, String to, String cc, String subject, String text,
-                                         List<Path> filePaths, List<String> fileNames) throws Exception {
-        List<NamedPath> namedPaths = new ArrayList<>();
-        if (filePaths != null) {
-            for (int i = 0; i < filePaths.size(); i++) {
-                Path path = filePaths.get(i);
-                String name = (fileNames != null && i < fileNames.size() && fileNames.get(i) != null)
-                        ? fileNames.get(i)
-                        : path.getFileName().toString();
-                namedPaths.add(new NamedPath(path, name));
-            }
+    public Result sendMail(String to, String subject, String content, String cc,
+                           boolean isHtml, MultipartFile file) {
+        LoginUser loginUser = (LoginUser) SecurityContextHolder.getContext()
+                .getAuthentication().getPrincipal();
+
+        String email = loginUser.getEmail();
+        String authCode = loginUser.getAuthCode();
+        String smtpHost = loginUser.getSmtpHost();
+        Integer smtpPort = loginUser.getSmtpPort();
+
+        if(authCode == null || smtpPort == null || smtpHost ==null){
+            return Result.fail("未填写授权码，请在个人中心填写后重试");
         }
-        return sendMailInternal(sender, to, cc, subject, text, null, namedPaths);
-    }
 
-    private MailSendLog sendMailInternal(LoginUser sender, String to, String cc, String subject, String text,
-                                         List<MultipartFile> multipartFiles,
-                                         List<NamedPath> pathFiles) throws MessagingException, IOException {
-
-        String email = sender.getEmail();
-        String authCode = sender.getAuthCode();
-        String smtpHost = sender.getSmtpHost();
-        Integer smtpPort = sender.getSmtpPort();
-
-        // 1. 先创建发送记录（PENDING）
+        // 1. 保存发送记录
         MailSendLog sendLog = new MailSendLog();
         sendLog.setFromEmail(email);
         sendLog.setToEmails(to);
-        sendLog.setCcEmails(cc);
+        sendLog.setCcEmails(cc != null ? cc : "");
         sendLog.setSubject(subject);
-        sendLog.setContent(text);
-        sendLog.setSendStatus("PENDING");
-        sendLog.setSenderUserId(sender.getUserId());
-        sendLog.setSenderName(sender.getLoginName());
+        sendLog.setContent(content);
+        sendLog.setSendStatus(MailSendStatus.PENDING.getCode());
+        sendLog.setSenderUserId(loginUser.getUserId());
+        sendLog.setSenderName(loginUser.getLoginName());
         sendLog.setCreateTime(new Date());
         mailSendLogService.save(sendLog);
 
-        // 收集附件信息用于后续记录
-        List<AttachmentInfo> attachmentInfos = new ArrayList<>();
+        // 2. 上传附件并保存附件记录
+        if (file != null && !file.isEmpty()) {
+            try {
+                Result uploadResult = uploadFileServiceImpl.upload(file);
+                if (uploadResult.getCode() == 200) {
+                    String fileUrl = (String) uploadResult.getData();
 
-        try {
-            // 2. 配置 JavaMailSender
-            JavaMailSenderImpl mailSender = new JavaMailSenderImpl();
-            if (smtpHost != null && !smtpHost.isBlank() && smtpPort != null && smtpPort > 0) {
-                mailSender.setHost(smtpHost);
-                mailSender.setPort(smtpPort);
-            } else {
-                MailServerConfig config = MailServerConfig.fromEmail(email);
-                if (config == null) {
-                    throw new IllegalArgumentException("暂不支持该邮箱服务商: " + email + "，请在注册时填写自定义SMTP信息");
+                    String encodedName = UriComponentsBuilder.fromUriString(fileUrl)
+                            .build().getQueryParams().getFirst("name");
+                    String originalName = URLDecoder.decode(encodedName, StandardCharsets.UTF_8);
+
+                    // 从 URL 中提取 fileId 计算磁盘路径
+                    String pathPart = fileUrl.contains("?")
+                            ? fileUrl.substring(0, fileUrl.indexOf("?"))
+                            : fileUrl;
+                    String fileId = pathPart.substring(pathPart.lastIndexOf("/") + 1);
+                    Path diskPath = uploadPath.resolve(fileId).normalize();
+                    long fileSize = Files.exists(diskPath) ? Files.size(diskPath) : 0;
+
+                    MailSendAttachment attachment = new MailSendAttachment();
+                    attachment.setMailSendLogId(sendLog.getId());
+                    attachment.setFileName(originalName);
+                    attachment.setFilePath(diskPath.toString());
+                    attachment.setFileUrl(fileUrl);
+                    attachment.setFileSize(fileSize);
+                    attachment.setCreateTime(new Date());
+                    mailSendAttachmentService.save(attachment);
+
+                    log.info("附件已保存: name={}, diskPath={}, fileUrl={}", originalName, diskPath, fileUrl);
                 }
-                mailSender.setHost(config.getHost());
-                mailSender.setPort(config.getPort());
+            } catch (Exception e) {
+                log.error("附件上传/保存失败", e);
             }
+        }
+
+        // 3. 发送邮件
+        try {
+            JavaMailSenderImpl mailSender = new JavaMailSenderImpl();
+            mailSender.setHost(smtpHost);
+            mailSender.setPort(smtpPort != null ? smtpPort : 587);
             mailSender.setUsername(email);
             mailSender.setPassword(authCode);
 
@@ -109,83 +139,40 @@ public class MailServiceImpl extends ServiceImpl<MailMapper, Mail> implements Ma
             } else if (port == 465) {
                 props.put("mail.smtp.ssl.enable", "true");
             }
-            props.put("mail.smtp.connectiontimeout", 5000);
-            props.put("mail.smtp.timeout", 5000);
-            props.put("mail.smtp.writetimeout", 5000);
+            props.put("mail.smtp.connectiontimeout", 10000);
+            props.put("mail.smtp.timeout", 10000);
+            props.put("mail.smtp.writetimeout", 10000);
             mailSender.setJavaMailProperties(props);
 
-            // 3. 构建 MimeMessage
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
             helper.setFrom(email);
-            helper.setTo(splitEmails(to));
+            helper.setTo(to.split("[,;]"));
             if (cc != null && !cc.isBlank()) {
-                helper.setCc(splitEmails(cc));
+                helper.setCc(cc.split("[,;]"));
             }
             helper.setSubject(subject);
-            helper.setText(text, false);
+            helper.setText(content, isHtml);
 
-            // 4. 处理附件（MultipartFile）
-            if (multipartFiles != null) {
-                for (MultipartFile file : multipartFiles) {
-                    if (file == null || file.isEmpty()) continue;
-                    helper.addAttachment(file.getOriginalFilename(),
-                            new ByteArrayResource(file.getBytes()), file.getContentType());
-                    attachmentInfos.add(new AttachmentInfo(
-                            file.getOriginalFilename(), null, null, file.getSize()));
-                }
-            }
-
-            // 5. 处理磁盘附件
-            if (pathFiles != null) {
-                for (NamedPath np : pathFiles) {
-                    if (np.path() == null || !np.path().toFile().exists()) continue;
-                    helper.addAttachment(np.name(), new FileSystemResource(np.path().toFile()));
-                    attachmentInfos.add(new AttachmentInfo(
-                            np.name(), np.path().toString(), null, np.path().toFile().length()));
-                }
-            }
-
-            // 6. 发送
             mailSender.send(message);
             log.info("邮件已从 {} 发送至 {}", email, to);
 
-            // 7. 更新发送记录为成功
-            sendLog.setSendStatus("SUCCESS");
+            sendLog.setSendStatus(MailSendStatus.SUCCESS.getCode());
             sendLog.setSentAt(new Date());
             mailSendLogService.updateById(sendLog);
 
-            // 8. 保存附件记录
-            for (AttachmentInfo info : attachmentInfos) {
-                MailSendAttachment attachment = new MailSendAttachment();
-                attachment.setMailSendLogId(sendLog.getId());
-                attachment.setFileName(info.name);
-                attachment.setFilePath(info.path);
-                attachment.setFileUrl(info.url);
-                attachment.setFileSize(info.size);
-                attachment.setCreateTime(new Date());
-                mailSendAttachmentService.save(attachment);
-            }
-
+            return Result.success(sendLog, "发送成功");
         } catch (Exception e) {
             log.error("邮件发送失败: {}", e.getMessage());
-            sendLog.setSendStatus("FAILED");
+            sendLog.setSendStatus(MailSendStatus.FAILED.getCode());
             sendLog.setErrorMessage(e.getMessage());
             mailSendLogService.updateById(sendLog);
-            throw e;
+            return Result.fail("发送失败：" + e.getMessage());
         }
-
-        return sendLog;
     }
 
-    private String[] splitEmails(String emails) {
-        return java.util.Arrays.stream(emails.split("[,;]"))
-                .map(String::trim)
-                .filter(s -> !s.isEmpty())
-                .toArray(String[]::new);
+    @Override
+    public Result sendMailWithTemplate() {
+        return null;
     }
-
-    private record NamedPath(Path path, String name) {}
-
-    private record AttachmentInfo(String name, String path, String url, long size) {}
 }

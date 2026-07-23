@@ -4,12 +4,13 @@
 
   <resultMap id="BaseResultMap" type="com.intellectual.model.entity.Mail">
     <id column="id" jdbcType="INTEGER" property="id"/>
+    <result column="user_id" jdbcType="BIGINT" property="userId"/>
     <result column="email" jdbcType="VARCHAR" property="email"/>
     <result column="auth_code" jdbcType="VARCHAR" property="authCode"/>
     <result column="smtp_host" jdbcType="VARCHAR" property="smtpHost"/>
     <result column="smtp_port" jdbcType="INTEGER" property="smtpPort"/>
   </resultMap>
   <sql id="Base_Column_List">
-    id, email, auth_code, smtp_host, smtp_port
+    id, user_id, email, auth_code, smtp_host, smtp_port
   </sql>
 </mapper>

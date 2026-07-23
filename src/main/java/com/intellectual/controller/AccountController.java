@@ -105,7 +105,7 @@ public class AccountController {
     public Result logout() {
         LoginUser loginUser = getLoginUser();
         if (loginUser != null) {
-            redisUtils.del(Constants.REDIS_KEY_TOKEN + loginUser.getUserId());
+            redisUtils.del(Constants.REDIS_KEY_JWT_TOKEN + loginUser.getUserId());
             SecurityContextHolder.clearContext();
         }
         return Result.successMsg("退出成功");

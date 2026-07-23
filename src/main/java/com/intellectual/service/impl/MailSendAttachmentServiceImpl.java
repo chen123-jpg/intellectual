@@ -10,7 +10,7 @@ import org.springframework.stereotype.Service;
  * 邮件发送附件表 服务实现类
  *
  * @author 陈创
- * @since 2026-07-21 17:19
+ * @since 2026-07-23 19:09
  */
 @Service
 public class MailSendAttachmentServiceImpl extends ServiceImpl<MailSendAttachmentMapper, MailSendAttachment> implements MailSendAttachmentService {

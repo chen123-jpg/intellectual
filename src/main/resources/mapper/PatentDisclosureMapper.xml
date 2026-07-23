@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.intellectual.mapper.PatentDisclosureMapper">
+
+  <resultMap id="BaseResultMap" type="com.intellectual.model.entity.PatentDisclosure">
+    <id column="id" jdbcType="BIGINT" property="id"/>
+    <result column="temp_no" jdbcType="VARCHAR" property="tempNo"/>
+    <result column="internal_no" jdbcType="VARCHAR" property="internalNo"/>
+    <result column="patent_status" jdbcType="VARCHAR" property="patentStatus"/>
+    <result column="requirement" jdbcType="VARCHAR" property="requirement"/>
+    <result column="disclosure_name" jdbcType="VARCHAR" property="disclosureName"/>
+    <result column="applicant" jdbcType="VARCHAR" property="applicant"/>
+    <result column="inventor" jdbcType="VARCHAR" property="inventor"/>
+    <result column="patent_type" jdbcType="VARCHAR" property="patentType"/>
+    <result column="invited_to_group" jdbcType="TINYINT" property="invitedToGroup"/>
+    <result column="contact_person" jdbcType="VARCHAR" property="contactPerson"/>
+    <result column="manager" jdbcType="VARCHAR" property="manager"/>
+    <result column="agent" jdbcType="VARCHAR" property="agent"/>
+    <result column="sponsor" jdbcType="VARCHAR" property="sponsor"/>
+    <result column="sponsor_user_id" jdbcType="BIGINT" property="sponsorUserId"/>
+    <result column="disclosure_date" jdbcType="DATE" property="disclosureDate"/>
+    <result column="disclosure_days" jdbcType="INTEGER" property="disclosureDays"/>
+    <result column="remark" jdbcType="VARCHAR" property="remark"/>
+    <result column="contact_info" jdbcType="VARCHAR" property="contactInfo"/>
+    <result column="contact_email" jdbcType="VARCHAR" property="contactEmail"/>
+    <result column="contact_phone" jdbcType="VARCHAR" property="contactPhone"/>
+    <result column="entry_user_id" jdbcType="BIGINT" property="entryUserId"/>
+    <result column="entry_user_name" jdbcType="VARCHAR" property="entryUserName"/>
+    <result column="copy_from_id" jdbcType="BIGINT" property="copyFromId"/>
+    <result column="no_generate_mode" jdbcType="VARCHAR" property="noGenerateMode"/>
+    <result column="finalized_at" jdbcType="TIMESTAMP" property="finalizedAt"/>
+    <result column="pending_report_at" jdbcType="TIMESTAMP" property="pendingReportAt"/>
+    <result column="synced_to_patent" jdbcType="TINYINT" property="syncedToPatent"/>
+    <result column="patent_application_id" jdbcType="BIGINT" property="patentApplicationId"/>
+    <result column="create_time" jdbcType="TIMESTAMP" property="createTime"/>
+    <result column="update_time" jdbcType="TIMESTAMP" property="updateTime"/>
+  </resultMap>
+  <sql id="Base_Column_List">
+    id, temp_no, internal_no, patent_status, requirement, disclosure_name, applicant, 
+	inventor, patent_type, invited_to_group, contact_person, manager, agent, sponsor, 
+	sponsor_user_id, disclosure_date, disclosure_days, remark, contact_info, contact_email, contact_phone, 
+	entry_user_id, entry_user_name, copy_from_id, no_generate_mode, finalized_at, pending_report_at, synced_to_patent, 
+	patent_application_id, create_time, update_time
+  </sql>
+</mapper>

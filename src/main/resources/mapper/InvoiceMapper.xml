@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.intellectual.mapper.InvoiceMapper">
+
+  <resultMap id="BaseResultMap" type="com.intellectual.model.entity.Invoice">
+    <id column="id" jdbcType="BIGINT" property="id"/>
+    <result column="disclosure_id" jdbcType="BIGINT" property="disclosureId"/>
+    <result column="internal_no" jdbcType="VARCHAR" property="internalNo"/>
+    <result column="temp_no" jdbcType="VARCHAR" property="tempNo"/>
+    <result column="disclosure_name" jdbcType="VARCHAR" property="disclosureName"/>
+    <result column="applicant" jdbcType="VARCHAR" property="applicant"/>
+    <result column="invoice_title" jdbcType="VARCHAR" property="invoiceTitle"/>
+    <result column="tax_no" jdbcType="VARCHAR" property="taxNo"/>
+    <result column="invoice_type" jdbcType="VARCHAR" property="invoiceType"/>
+    <result column="invoice_amount" jdbcType="DECIMAL" property="invoiceAmount"/>
+    <result column="invoice_status" jdbcType="VARCHAR" property="invoiceStatus"/>
+    <result column="invoice_no" jdbcType="VARCHAR" property="invoiceNo"/>
+    <result column="invoice_date" jdbcType="DATE" property="invoiceDate"/>
+    <result column="remark" jdbcType="VARCHAR" property="remark"/>
+    <result column="source" jdbcType="VARCHAR" property="source"/>
+    <result column="create_time" jdbcType="TIMESTAMP" property="createTime"/>
+    <result column="update_time" jdbcType="TIMESTAMP" property="updateTime"/>
+  </resultMap>
+  <sql id="Base_Column_List">
+    id, disclosure_id, internal_no, temp_no, disclosure_name, applicant, invoice_title, 
+	tax_no, invoice_type, invoice_amount, invoice_status, invoice_no, invoice_date, remark, 
+	source, create_time, update_time
+  </sql>
+</mapper>

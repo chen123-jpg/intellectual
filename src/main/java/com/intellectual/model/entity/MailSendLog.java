@@ -11,7 +11,7 @@ import com.baomidou.mybatisplus.annotation.IdType;
  * 邮件发送记录表
  *
  * @author 陈创
- * @since 2026-07-21 17:19
+ * @since 2026-07-23 19:09
  */
 @Data
 @TableName("mail_send_log")
@@ -24,26 +24,6 @@ public class MailSendLog implements Serializable {
      */
     @TableId(value = "id", type = IdType.AUTO)
     private Long id;
-
-    /**
-     * 交底ID
-     */
-    private Long disclosureId;
-
-    /**
-     * 内部编号
-     */
-    private String internalNo;
-
-    /**
-     * 所用模板ID
-     */
-    private Long templateId;
-
-    /**
-     * 模板编码(冗余)
-     */
-    private String templateCode;
 
     /**
      * 发件人邮箱
@@ -71,9 +51,9 @@ public class MailSendLog implements Serializable {
     private String content;
 
     /**
-     * PENDING/SUCCESS/FAILED
+     * PENDING 0/SUCCESS 1/FAILED 2
      */
-    private String sendStatus;
+    private Integer sendStatus;
 
     /**
      * 失败原因

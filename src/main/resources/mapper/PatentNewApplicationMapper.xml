@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.intellectual.mapper.PatentNewApplicationMapper">
+
+  <resultMap id="BaseResultMap" type="com.intellectual.model.entity.PatentNewApplication">
+    <id column="id" jdbcType="BIGINT" property="id"/>
+    <result column="internal_no" jdbcType="VARCHAR" property="internalNo"/>
+    <result column="patent_name" jdbcType="VARCHAR" property="patentName"/>
+    <result column="application_no" jdbcType="VARCHAR" property="applicationNo"/>
+    <result column="applicant" jdbcType="VARCHAR" property="applicant"/>
+    <result column="inventor" jdbcType="VARCHAR" property="inventor"/>
+    <result column="sponsor" jdbcType="VARCHAR" property="sponsor"/>
+    <result column="agent" jdbcType="VARCHAR" property="agent"/>
+    <result column="application_date" jdbcType="DATE" property="applicationDate"/>
+    <result column="notification" jdbcType="VARCHAR" property="notification"/>
+    <result column="issue_date" jdbcType="DATE" property="issueDate"/>
+    <result column="pre_exam_mark" jdbcType="VARCHAR" property="preExamMark"/>
+    <result column="payment_deadline" jdbcType="DATE" property="paymentDeadline"/>
+    <result column="fee_amount" jdbcType="DECIMAL" property="feeAmount"/>
+    <result column="payment_date" jdbcType="VARCHAR" property="paymentDate"/>
+    <result column="seq_no" jdbcType="INTEGER" property="seqNo"/>
+    <result column="patent_type" jdbcType="VARCHAR" property="patentType"/>
+    <result column="das_code" jdbcType="VARCHAR" property="dasCode"/>
+    <result column="create_time" jdbcType="TIMESTAMP" property="createTime"/>
+    <result column="update_time" jdbcType="TIMESTAMP" property="updateTime"/>
+  </resultMap>
+  <sql id="Base_Column_List">
+    id, internal_no, patent_name, application_no, applicant, inventor, sponsor, 
+	agent, application_date, notification, issue_date, pre_exam_mark, payment_deadline, fee_amount, 
+	payment_date, seq_no, patent_type, das_code, create_time, update_time
+  </sql>
+</mapper>

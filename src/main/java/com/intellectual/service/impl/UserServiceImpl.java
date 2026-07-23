@@ -107,11 +107,21 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     @Override
     public LoginResult login(LoginDto loginDto) {
         // 1. 查询用户
-        User user = userMapper.selectOne(
-                Wrappers.lambdaQuery(User.class).eq(User::getLoginName, loginDto.getLoginName()));
-        if (user == null) {
-            throw new BusinessException("账号或密码错误");
+        User user = new User();
+        if(loginDto.getLoginName() != null) {
+            user = userMapper.selectOne(
+                    Wrappers.lambdaQuery(User.class).eq(User::getLoginName, loginDto.getLoginName()));
+            if (user == null) {
+                throw new BusinessException("账号或密码错误");
+            }
+        } else if (loginDto.getPhoneNumber() != null) {
+            user = userMapper.selectOne(
+                    Wrappers.lambdaQuery(User.class).eq(User::getPhoneNumber, loginDto.getPhoneNumber()));
+            if (user == null) {
+                throw new BusinessException("手机号或密码错误");
+            }
         }
+
         // 2. 校验密码（统一返回"账号或密码错误"，避免信息泄露）
         if (!PasswordUtils.matches(loginDto.getPassword(), user.getPassword())) {
             throw new BusinessException("账号或密码错误");
@@ -153,7 +163,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
 
         // 5. 生成 JWT 并缓存至 Redis
         String token = jwtUtils.generateToken(user.getUserId(), user.getLoginName());
-        redisUtils.set(Constants.REDIS_KEY_TOKEN + user.getUserId(), token, Constants.REDIS_TIME_1DAY);
+        redisUtils.set(Constants.REDIS_KEY_JWT_TOKEN + user.getUserId(), token, Constants.REDIS_TIME_1DAY);
 
         // 6. 组装响应
         return LoginResult.builder()

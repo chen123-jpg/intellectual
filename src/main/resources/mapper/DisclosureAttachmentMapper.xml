@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.intellectual.mapper.DisclosureAttachmentMapper">
+
+  <resultMap id="BaseResultMap" type="com.intellectual.model.entity.DisclosureAttachment">
+    <id column="id" jdbcType="BIGINT" property="id"/>
+    <result column="disclosure_id" jdbcType="BIGINT" property="disclosureId"/>
+    <result column="internal_no" jdbcType="VARCHAR" property="internalNo"/>
+    <result column="biz_type" jdbcType="VARCHAR" property="bizType"/>
+    <result column="mail_send_log_id" jdbcType="BIGINT" property="mailSendLogId"/>
+    <result column="file_name" jdbcType="VARCHAR" property="fileName"/>
+    <result column="file_ext" jdbcType="VARCHAR" property="fileExt"/>
+    <result column="file_path" jdbcType="VARCHAR" property="filePath"/>
+    <result column="file_url" jdbcType="VARCHAR" property="fileUrl"/>
+    <result column="file_size" jdbcType="BIGINT" property="fileSize"/>
+    <result column="content_type" jdbcType="VARCHAR" property="contentType"/>
+    <result column="is_required" jdbcType="TINYINT" property="isRequired"/>
+    <result column="sort_no" jdbcType="INTEGER" property="sortNo"/>
+    <result column="upload_user_id" jdbcType="BIGINT" property="uploadUserId"/>
+    <result column="upload_user_name" jdbcType="VARCHAR" property="uploadUserName"/>
+    <result column="deleted" jdbcType="TINYINT" property="deleted"/>
+    <result column="create_time" jdbcType="TIMESTAMP" property="createTime"/>
+    <result column="update_time" jdbcType="TIMESTAMP" property="updateTime"/>
+  </resultMap>
+  <sql id="Base_Column_List">
+    id, disclosure_id, internal_no, biz_type, mail_send_log_id, file_name, file_ext, 
+	file_path, file_url, file_size, content_type, is_required, sort_no, upload_user_id, 
+	upload_user_name, deleted, create_time, update_time
+  </sql>
+</mapper>

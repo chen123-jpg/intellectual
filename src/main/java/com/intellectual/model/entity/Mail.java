@@ -10,7 +10,7 @@ import com.baomidou.mybatisplus.annotation.IdType;
  * 用户邮箱表
  *
  * @author 陈创
- * @since 2026-07-21 17:19
+ * @since 2026-07-23 19:09
  */
 @Data
 @TableName("mail")
@@ -21,6 +21,9 @@ public class Mail implements Serializable {
     @TableId(value = "id", type = IdType.AUTO)
     private Integer id;
 
+    /**
+     * 用户id
+     */
     private Long userId;
 
     /**

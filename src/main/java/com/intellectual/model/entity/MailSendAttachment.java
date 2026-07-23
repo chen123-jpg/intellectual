@@ -11,7 +11,7 @@ import com.baomidou.mybatisplus.annotation.IdType;
  * 邮件发送附件表
  *
  * @author 陈创
- * @since 2026-07-21 17:19
+ * @since 2026-07-23 19:09
  */
 @Data
 @TableName("mail_send_attachment")

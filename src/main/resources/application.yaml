@@ -1,3 +1,41 @@
+
 spring:
   application:
     name: intellectual
+  datasource:
+    url: jdbc:mysql://localhost:2006/intellectual-property?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=Asia/Shanghai
+    username: ${DB_USER:root}
+    password: ${DB_PASSWORD:123456}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      password: ${REDIS_PASSWORD:}
+      timeout: 3000ms
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 0
+
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+  global-config:
+    db-config:
+      logic-delete-field: delFlag
+      logic-delete-value: "2"
+      logic-not-delete-value: "0"
+
+jwt:
+  secret: ${JWT_SECRET:intellectual-jwt-secret-key-2026-please-change-in-production}
+  expiration: 86400000
+
+server:
+  port: 5050
+
+app:
+  upload:
+    dir: uploads

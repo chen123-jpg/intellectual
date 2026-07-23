@@ -1,8 +1,8 @@
 package com.intellectual.service;
 
 import com.intellectual.model.dto.LoginDto;
+import com.intellectual.model.dto.LoginResult;
 import com.intellectual.model.dto.RegisterDto;
-import com.intellectual.model.dto.Result;
 import com.intellectual.model.entity.User;
 import com.baomidou.mybatisplus.extension.service.IService;
 
@@ -14,6 +14,22 @@ import com.baomidou.mybatisplus.extension.service.IService;
  */
 public interface UserService extends IService<User> {
 
-    Result register(RegisterDto registerDto);
-    Result login(LoginDto loginDto);
+    /**
+     * 用户注册
+     * <p>校验账号唯一性，BCrypt 加密密码，同时创建用户与邮箱配置记录</p>
+     *
+     * @param registerDto 注册表单数据
+     * @throws com.intellectual.exception.BusinessException 账号已存在时抛出
+     */
+    void register(RegisterDto registerDto);
+
+    /**
+     * 用户登录
+     * <p>校验密码、账号状态，查询用户的角色与权限，生成 JWT Token 并缓存至 Redis</p>
+     *
+     * @param loginDto 登录表单数据
+     * @return 包含 Token、用户信息、角色与权限列表的登录结果
+     * @throws com.intellectual.exception.BusinessException 账号不存在、密码错误或账号停用时抛出
+     */
+    LoginResult login(LoginDto loginDto);
 }

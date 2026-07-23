@@ -3,6 +3,8 @@ package com.intellectual.service;
 import com.intellectual.model.entity.MailTemplate;
 import com.baomidou.mybatisplus.extension.service.IService;
 
+import java.util.List;
+
 /**
  * 邮件模板表 服务类接口
  *
@@ -11,4 +13,7 @@ import com.baomidou.mybatisplus.extension.service.IService;
  */
 public interface MailTemplateService extends IService<MailTemplate> {
 
+    MailTemplate getByCode(String templateCode);
+
+    List<MailTemplate> listEnabled();
 }

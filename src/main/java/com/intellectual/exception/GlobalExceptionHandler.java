@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.servlet.NoHandlerFoundException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
@@ -241,6 +242,17 @@ public class GlobalExceptionHandler {
         log.error("异常堆栈:", e);
         
         return Result.fail("系统内部错误", ResponseCodeEnum.CODE_500.getCode());
+    }
+
+    /**
+     * 处理权限不足异常
+     * <p>由 {@code PermissionAspect} 或 Spring Security 过滤器链抛出</p>
+     */
+    @ExceptionHandler(AccessDeniedException.class)
+    @ResponseStatus(HttpStatus.FORBIDDEN)
+    public Result handleAccessDeniedException(AccessDeniedException e, HttpServletRequest request) {
+        log.warn("权限不足 - URI: {}, Message: {}", request.getRequestURI(), e.getMessage());
+        return Result.fail("权限不足", HttpStatus.FORBIDDEN.value());
     }
 
     /**

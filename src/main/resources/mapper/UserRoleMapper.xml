@@ -3,8 +3,8 @@
 <mapper namespace="com.intellectual.mapper.UserRoleMapper">
 
   <resultMap id="BaseResultMap" type="com.intellectual.model.entity.UserRole">
-    <result column="user_id" jdbcType="BIGINT" property="userId"/>
     <id column="role_id" jdbcType="BIGINT" property="roleId"/>
+    <result column="user_id" jdbcType="BIGINT" property="userId"/>
   </resultMap>
   <sql id="Base_Column_List">
     user_id, role_id

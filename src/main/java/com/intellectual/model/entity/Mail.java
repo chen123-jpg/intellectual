@@ -21,6 +21,8 @@ public class Mail implements Serializable {
     @TableId(value = "id", type = IdType.AUTO)
     private Integer id;
 
+    private Long userId;
+
     /**
      * 邮箱（登录账号）
      */

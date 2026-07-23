@@ -3,8 +3,8 @@
 <mapper namespace="com.intellectual.mapper.RoleMenuMapper">
 
   <resultMap id="BaseResultMap" type="com.intellectual.model.entity.RoleMenu">
-    <result column="role_id" jdbcType="BIGINT" property="roleId"/>
     <id column="menu_id" jdbcType="BIGINT" property="menuId"/>
+    <result column="role_id" jdbcType="BIGINT" property="roleId"/>
   </resultMap>
   <sql id="Base_Column_List">
     role_id, menu_id

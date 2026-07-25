@@ -2,29 +2,25 @@ package com.intellectual.controller;
 
 import com.intellectual.annotation.RequirePermission;
 import com.intellectual.model.dto.Result;
-import com.intellectual.model.entity.UserRole;
-import com.intellectual.service.RoleService;
-import com.intellectual.service.UserRoleService;
+import com.intellectual.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-/**
- * 用户和角色关联表 N-1 前端控制器
- *
- * @author 陈创
- * @since 2026-07-21 17:19
- */
 @RestController
-@RequestMapping("/sys-user-role")
-public class UserRoleController {
+@RequestMapping("/api/user")
+public class UserController {
 
+    @Autowired
+    private UserService userService;
 
-
-    @RequirePermission("system:userRole:list")
+    /**
+     * 用户列表（需 system:user:list 权限）
+     */
+    @RequirePermission("system:user:list")
     @GetMapping("/list")
-    public Result list(){
-       return Result.success(null);
+    public Result listUsers() {
+        return Result.success(userService.list());
     }
 }

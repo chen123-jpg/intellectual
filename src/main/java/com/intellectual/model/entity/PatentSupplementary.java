@@ -11,7 +11,7 @@ import com.baomidou.mybatisplus.annotation.IdType;
  * 补漏专利表
  *
  * @author 陈创
- * @since 2026-07-23 16:59
+ * @since 2026-07-25 18:08
  */
 @Data
 @TableName("patent_supplementary")

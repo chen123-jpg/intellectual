@@ -1,5 +1,6 @@
 package com.intellectual.service;
 
+import com.intellectual.model.dto.MailRequest;
 import com.intellectual.model.dto.Result;
 import com.intellectual.model.entity.Mail;
 import com.baomidou.mybatisplus.extension.service.IService;
@@ -14,5 +15,5 @@ import org.springframework.web.multipart.MultipartFile;
 public interface MailService extends IService<Mail> {
     Result sendMail(String to, String subject, String content, String cc, boolean isHtml, MultipartFile files);
 
-    Result sendMailWithTemplate();
+    Result sendMailWithTemplate(MailRequest request);
 }

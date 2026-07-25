@@ -71,8 +71,9 @@ public class User implements Serializable {
     private String password;
 
     /**
-     * 盐加密
+     * 盐加密（BCrypt 已内置，此字段仅用于兼容旧逻辑，不映射数据库）
      */
+    @com.baomidou.mybatisplus.annotation.TableField(exist = false)
     private String salt;
 
     /**

@@ -32,4 +32,8 @@ public interface UserService extends IService<User> {
      * @throws com.intellectual.exception.BusinessException 账号不存在、密码错误或账号停用时抛出
      */
     LoginResult login(LoginDto loginDto);
+
+    void saveAuthCode(Long userId,String email,String authCode);
+
+    void changePassword(Long userId, String oldPassword, String newPassword);
 }

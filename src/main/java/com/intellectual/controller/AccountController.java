@@ -72,7 +72,7 @@ public class AccountController {
             return Result.success("注册成功");
         } catch (BusinessException e) {
             log.error(e.getMessage());
-            return Result.fail("注册失败:" + e.getMessage(), e.getCode());
+            return Result.fail(e.getMessage());
         } catch (Exception e) {
             log.error(e.getMessage());
             return Result.fail("注册失败");
@@ -93,7 +93,7 @@ public class AccountController {
             return Result.success(loginResult, "登录成功");
         } catch (BusinessException e) {
             log.error("登录失败: {}", e.getMessage());
-            return Result.fail(e.getMessage(), e.getCode());
+            return Result.fail(e.getMessage());
         }
     }
 
@@ -128,13 +128,38 @@ public class AccountController {
         return Result.success(userInfo);
     }
 
-    /**
-     * 用户列表（需 system:user:list 权限）
-     */
-    @RequirePermission("system:user:list")
-    @GetMapping("/list")
-    public Result listUsers() {
-        return Result.success(userService.list());
+
+    //填写邮箱授权码并保存
+    @PostMapping("/authCode")
+    public Result saveAuthCode(Long userId,String email,String authCode){
+
+        try{
+            userService.saveAuthCode(userId, email, authCode);
+            return Result.success(null);
+        }catch (BusinessException e){
+            log.error("保存失败");
+            return Result.fail(e.getMessage());
+        }catch (Exception e){
+            log.error(e.getMessage());
+            return Result.fail(null);
+        }
+
+    }
+
+    @PostMapping("password")
+    public Result changePassword(Long userId,String oldPassword ,String newPassword){
+        log.info("更换密码开始，userId:{} ,原始密码：{} ，新密码：{}",userId,oldPassword,newPassword);
+        try{
+            userService.changePassword(userId,oldPassword,newPassword);
+            return Result.success(null);
+        }catch (BusinessException e){
+            log.error(e.getMessage());
+            return Result.fail("修改失败:"+e.getMessage());
+        }
+        catch (Exception e){
+            log.error(e.getMessage());
+            return Result.fail(null);
+        }
     }
 
     /**

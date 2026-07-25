@@ -18,12 +18,16 @@ import com.intellectual.model.entity.UserRole;
 import com.intellectual.mapper.MenuMapper;
 import com.intellectual.mapper.RoleMapper;
 import com.intellectual.mapper.UserMapper;
+import com.intellectual.model.enums.MailServerConfig;
 import com.intellectual.redis.RedisUtils;
+import com.intellectual.security.LoginUser;
 import com.intellectual.service.UserService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.intellectual.utils.ArrayUtils;
 import com.intellectual.utils.JwtUtils;
 import com.intellectual.utils.PasswordUtils;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -37,6 +41,7 @@ import java.util.stream.Collectors;
  * @author 陈创
  * @since 2026-07-21 17:19
  */
+@Slf4j
 @Service
 public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements UserService {
 
@@ -78,6 +83,11 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         if (oldUser != null) {
             throw new BusinessException("账号已存在");
         }
+        // 检查邮箱是否已被注册
+        if (mailMapper.selectOne(
+                Wrappers.lambdaQuery(Mail.class).eq(Mail::getEmail, registerDto.getEmail())) != null) {
+            throw new BusinessException("该邮箱已被注册");
+        }
         // BCrypt 加密密码后保存用户
         registerDto.setPassword(PasswordUtils.encode(registerDto.getPassword()));
         User user = ArrayUtils.copyProperties(registerDto, new User());
@@ -85,9 +95,15 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         user.setDelFlag("0");      // 未删除
         user.setUserType("01");    // 注册用户
         userMapper.insert(user);
+
+        //根据邮箱获取配置
+        MailServerConfig mailServerConfig =  MailServerConfig.fromEmail(user.getEmail());
         // 同步创建用户邮箱配置
         Mail mail = new Mail();
+        mail.setUserId(user.getUserId());
         mail.setEmail(user.getEmail());
+        mail.setSmtpHost(mailServerConfig.getHost());
+        mail.setSmtpPort(mailServerConfig.getPort());
         mailMapper.insert(mail);
     }
 
@@ -175,5 +191,60 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
                 .permissions(permissions)
                 .email(user.getEmail())
                 .build();
+    }
+
+    //保存授权码
+    @Override
+    public void saveAuthCode(Long userId,String email,String authCode){
+
+        LoginUser loginUser = (LoginUser) SecurityContextHolder.getContext()
+                .getAuthentication().getPrincipal();
+
+        log.info("填写授权码为：{},开始保存",authCode);
+
+        //放篡改
+        if(!loginUser.getUserId().equals(userId)){
+            return;
+        }
+
+        Mail mail = new Mail();
+        mail.setUserId(userId);
+        mail.setEmail(email);
+        mail.setAuthCode(authCode);
+
+        var res = mailMapper.update(null, Wrappers.<Mail>lambdaUpdate()
+                .set(Mail::getEmail, email)
+                .set(Mail::getAuthCode, authCode)
+                .eq(Mail::getUserId, userId));
+
+        if(res <=0){
+            throw new BusinessException("保存失败");
+        }
+    }
+
+    //更换登录用户的密码
+    @Override
+    public void changePassword(Long userId, String oldPassword, String newPassword) {
+
+        LoginUser loginUser = (LoginUser) SecurityContextHolder.getContext()
+                .getAuthentication().getPrincipal();
+
+        //验证是否是当前登录用户
+        if(!loginUser.getUserId().equals(userId)){
+            return;
+        }
+
+        User userInfo = userMapper.selectOne(Wrappers.lambdaQuery(User.class).eq(User::getUserId,userId));
+        if(!PasswordUtils.matches(oldPassword,userInfo.getPassword())){
+            throw new BusinessException("原始密码错误");
+        }
+        if(newPassword.equals(oldPassword)){
+            throw new BusinessException("新旧密码不能相同");
+        }
+
+        userInfo.setPassword(PasswordUtils.encode(newPassword));
+
+        userMapper.update(userInfo,Wrappers.<User>lambdaUpdate().eq(User::getUserId,userId));
+
     }
 }

@@ -8,7 +8,7 @@ import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 * 补漏专利表 Mapper
 *
 * @author 陈创
-* @since 2026-07-23 16:59
+* @since 2026-07-25 18:08
 */
 @Mapper
 public interface PatentSupplementaryMapper extends BaseMapper<PatentSupplementary> {

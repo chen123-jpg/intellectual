@@ -10,7 +10,7 @@ import org.springframework.stereotype.Service;
  * 交底附件表 服务实现类
  *
  * @author 陈创
- * @since 2026-07-23 16:59
+ * @since 2026-07-26 00:42
  */
 @Service
 public class DisclosureAttachmentServiceImpl extends ServiceImpl<DisclosureAttachmentMapper, DisclosureAttachment> implements DisclosureAttachmentService {

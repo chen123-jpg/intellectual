@@ -10,7 +10,7 @@ import org.springframework.stereotype.Service;
  * PCT国际申请表 服务实现类
  *
  * @author 陈创
- * @since 2026-07-23 16:59
+ * @since 2026-07-25 18:12
  */
 @Service
 public class PatentPctServiceImpl extends ServiceImpl<PatentPctMapper, PatentPct> implements PatentPctService {

@@ -12,7 +12,7 @@ import com.baomidou.mybatisplus.annotation.IdType;
  * 中间著变专利表（有重复）
  *
  * @author 陈创
- * @since 2026-07-23 16:59
+ * @since 2026-07-25 18:12
  */
 @Data
 @TableName("patent_intermediate_change")

@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.intellectual.mapper.PatentReexaminationMapper">
+
+  <resultMap id="BaseResultMap" type="com.intellectual.model.entity.PatentReexamination">
+    <id column="id" jdbcType="BIGINT" property="id"/>
+    <result column="seq_no" jdbcType="INTEGER" property="seqNo"/>
+    <result column="patent_type" jdbcType="VARCHAR" property="patentType"/>
+    <result column="category" jdbcType="VARCHAR" property="category"/>
+    <result column="case_no" jdbcType="VARCHAR" property="caseNo"/>
+    <result column="internal_no" jdbcType="VARCHAR" property="internalNo"/>
+    <result column="application_no" jdbcType="VARCHAR" property="applicationNo"/>
+    <result column="patent_name" jdbcType="VARCHAR" property="patentName"/>
+    <result column="applicant" jdbcType="VARCHAR" property="applicant"/>
+    <result column="sponsor" jdbcType="VARCHAR" property="sponsor"/>
+    <result column="agent" jdbcType="VARCHAR" property="agent"/>
+    <result column="notification" jdbcType="VARCHAR" property="notification"/>
+    <result column="issue_date" jdbcType="DATE" property="issueDate"/>
+    <result column="submit_date" jdbcType="DATE" property="submitDate"/>
+    <result column="query_info" jdbcType="VARCHAR" property="queryInfo"/>
+    <result column="official_fee" jdbcType="DECIMAL" property="officialFee"/>
+    <result column="payment_date" jdbcType="VARCHAR" property="paymentDate"/>
+    <result column="note1" jdbcType="VARCHAR" property="note1"/>
+    <result column="create_time" jdbcType="TIMESTAMP" property="createTime"/>
+    <result column="update_time" jdbcType="TIMESTAMP" property="updateTime"/>
+  </resultMap>
+  <sql id="Base_Column_List">
+    id, seq_no, patent_type, category, case_no, internal_no, application_no, 
+	patent_name, applicant, sponsor, agent, notification, issue_date, submit_date, 
+	query_info, official_fee, payment_date, note1, create_time, update_time
+  </sql>
+</mapper>

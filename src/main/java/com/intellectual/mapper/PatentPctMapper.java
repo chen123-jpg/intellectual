@@ -8,7 +8,7 @@ import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 * PCT国际申请表 Mapper
 *
 * @author 陈创
-* @since 2026-07-23 16:59
+* @since 2026-07-25 18:12
 */
 @Mapper
 public interface PatentPctMapper extends BaseMapper<PatentPct> {

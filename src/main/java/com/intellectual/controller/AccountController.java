@@ -124,6 +124,7 @@ public class AccountController {
         userInfo.put("userId", loginUser.getUserId());
         userInfo.put("loginName", loginUser.getLoginName());
         userInfo.put("roles", loginUser.getRoles());
+        userInfo.put("email",loginUser.getEmail());
         userInfo.put("permissions", loginUser.getPermissions());
         return Result.success(userInfo);
     }

@@ -11,7 +11,7 @@ import com.baomidou.mybatisplus.annotation.IdType;
  * 交底附件表
  *
  * @author 陈创
- * @since 2026-07-23 16:59
+ * @since 2026-07-26 00:42
  */
 @Data
 @TableName("disclosure_attachment")

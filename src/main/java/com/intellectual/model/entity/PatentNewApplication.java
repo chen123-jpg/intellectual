@@ -12,7 +12,7 @@ import com.baomidou.mybatisplus.annotation.IdType;
  * 专利新申请表
  *
  * @author 陈创
- * @since 2026-07-23 16:59
+ * @since 2026-07-25 18:12
  */
 @Data
 @TableName("patent_new_application")

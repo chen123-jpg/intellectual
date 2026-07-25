@@ -10,7 +10,7 @@ import org.springframework.stereotype.Service;
  * 补漏专利表 服务实现类
  *
  * @author 陈创
- * @since 2026-07-25 18:08
+ * @since 2026-07-25 18:12
  */
 @Service
 public class PatentSupplementaryServiceImpl extends ServiceImpl<PatentSupplementaryMapper, PatentSupplementary> implements PatentSupplementaryService {

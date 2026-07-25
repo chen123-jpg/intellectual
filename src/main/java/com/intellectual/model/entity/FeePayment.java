@@ -12,7 +12,7 @@ import com.baomidou.mybatisplus.annotation.IdType;
  * 缴费表
  *
  * @author 陈创
- * @since 2026-07-23 16:59
+ * @since 2026-07-26 00:42
  */
 @Data
 @TableName("fee_payment")

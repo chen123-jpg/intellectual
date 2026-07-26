@@ -11,6 +11,12 @@ import org.springframework.web.bind.annotation.*;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import com.intellectual.security.LoginUser;
 
 /**
  * 菜单权限表 前端控制器
@@ -53,12 +59,19 @@ public class MenuController {
         return Result.success(result);
     }
 
-    /** 全部列表（不分页） */
-    @RequirePermission("system:menu:list")
+    /** 全部列表（不分页）- 根据当前用户权限过滤 */
     @GetMapping("/all")
     public Result all() {
-        return Result.success(menuService.list(
-                new LambdaQueryWrapper<Menu>().orderByAsc(Menu::getOrderNum)));
+        Set<String> userPerms = getUserPermissions();
+        List<Menu> menus = menuService.list(
+                new LambdaQueryWrapper<Menu>().orderByAsc(Menu::getOrderNum));
+        // 过滤：perms为null的菜单(目录/M)所有人可见，有perms的菜单需用户持有该权限
+        if (userPerms != null && !userPerms.isEmpty()) {
+            menus = menus.stream()
+                    .filter(m -> m.getPerms() == null || userPerms.contains(m.getPerms()))
+                    .collect(Collectors.toList());
+        }
+        return Result.success(menus);
     }
 
     /** 详情 */
@@ -105,5 +118,14 @@ public class MenuController {
     public Result deleteBatch(@RequestBody List<Long> ids) {
         menuService.removeByIds(ids);
         return Result.successMsg("批量删除成功");
+    }
+
+    /** 从 SecurityContext 中获取当前登录用户的权限集合 */
+    private Set<String> getUserPermissions() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication != null && authentication.getPrincipal() instanceof LoginUser) {
+            return ((LoginUser) authentication.getPrincipal()).getPermissions();
+        }
+        return null;
     }
 }

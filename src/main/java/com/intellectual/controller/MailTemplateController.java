@@ -52,7 +52,6 @@ public class MailTemplateController {
     }
 
     /** 全部列表（不分页） */
-    @RequirePermission("system:mailTemplate:list")
     @GetMapping("/all")
     public Result all() {
         return Result.success(mailTemplateService.list(
@@ -60,7 +59,6 @@ public class MailTemplateController {
     }
 
     /** 详情 */
-    @RequirePermission("system:mailTemplate:query")
     @GetMapping("/{id}")
     public Result getById(@PathVariable Long id) {
         MailTemplate template = mailTemplateService.getById(id);

@@ -3,9 +3,11 @@ package com.intellectual.model.entity;
 import java.io.Serializable;
 import java.util.Date;
 import lombok.Data;
-import com.baomidou.mybatisplus.annotation.TableName;
-import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.FieldStrategy;
 import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
+import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableName;
 
 /**
  * 申请包表(XML包与五书WORD分条目)
@@ -81,8 +83,9 @@ public class ApplicationPackage implements Serializable {
     private Integer isCurrent;
 
     /**
-     * 仅当前版本参与唯一
+     * 仅当前版本参与唯一（MySQL生成列，不允许手动插入/更新）
      */
+    @TableField(insertStrategy = FieldStrategy.NEVER, updateStrategy = FieldStrategy.NEVER)
     private String currentTypeKey;
 
     /**

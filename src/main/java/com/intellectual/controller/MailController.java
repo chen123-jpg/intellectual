@@ -21,7 +21,6 @@ public class MailController {
     @Autowired
     private MailService mailService;
 
-    @Transactional(rollbackFor = Exception.class)
     @PostMapping("/sendMaill")
     public Result sendMail(@RequestParam String to,
                            @RequestParam String subject,

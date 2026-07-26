@@ -178,7 +178,7 @@ public class MailServiceImpl extends ServiceImpl<MailMapper, Mail> implements Ma
             sendLog.setSendStatus(MailSendStatus.FAILED.getCode());
             sendLog.setErrorMessage(e.getMessage());
             mailSendLogService.updateById(sendLog);
-            return Result.fail("发送失败：" + e.getMessage());
+            return Result.fail(buildSendErrorMsg(e));
         }
     }
 
@@ -329,7 +329,27 @@ public class MailServiceImpl extends ServiceImpl<MailMapper, Mail> implements Ma
             sendLog.setSendStatus(MailSendStatus.FAILED.getCode());
             sendLog.setErrorMessage(e.getMessage());
             mailSendLogService.updateById(sendLog);
-            return Result.fail("发送失败：" + e.getMessage());
+            return Result.fail(buildSendErrorMsg(e));
         }
+    }
+
+    /**
+     * 根据异常信息构建用户友好的错误提示
+     * <p>常见认证失败原因：授权码错误、邮箱未开启SMTP服务、密码填了登录密码而非授权码</p>
+     */
+    private String buildSendErrorMsg(Exception e) {
+        String msg = e.getMessage();
+        if (msg == null) {
+            return "发送失败，请稍后重试";
+        }
+        String lower = msg.toLowerCase();
+        if (lower.contains("authentication") || lower.contains("535")
+                || lower.contains("login fail") || lower.contains("authorization code")) {
+            return "邮件认证失败：邮箱地址或授权码错误，请检查SMTP配置";
+        }
+        if (lower.contains("connect") || lower.contains("timeout") || lower.contains("unknown host")) {
+            return "邮件服务器连接失败：请检查SMTP服务器地址和端口";
+        }
+        return "发送失败：" + msg;
     }
 }

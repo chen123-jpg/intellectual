@@ -32,6 +32,13 @@ public class RegisterDto {
     private String phoneNumber;
 
     /**
+     * 手机验证码
+     */
+    @NotBlank(message = "手机验证码不能为空")
+    @Size(min = 6,max = 6,message = "验证码格式错误")
+    private String smsCode;
+
+    /**
      * 密码
      */
     @NotBlank(message = "密码不能为空")

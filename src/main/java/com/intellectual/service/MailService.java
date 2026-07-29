@@ -13,7 +13,7 @@ import org.springframework.web.multipart.MultipartFile;
  * @since 2026-07-23 19:09
  */
 public interface MailService extends IService<Mail> {
-    Result sendMail(String to, String subject, String content, String cc, boolean isHtml, MultipartFile files);
+    Result sendMail(Long disclosureId,String to, String subject, String content, String cc, boolean isHtml, MultipartFile files);
 
     Result sendMailWithTemplate(MailRequest request);
 }

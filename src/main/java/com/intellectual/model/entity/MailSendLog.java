@@ -26,6 +26,11 @@ public class MailSendLog implements Serializable {
     private Long id;
 
     /**
+     * 专利交底 id
+     */
+    private Long disclosureId;
+
+    /**
      * 发件人邮箱
      */
     private String fromEmail;

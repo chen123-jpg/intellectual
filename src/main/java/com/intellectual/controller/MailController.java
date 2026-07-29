@@ -22,14 +22,15 @@ public class MailController {
     private MailService mailService;
 
     @PostMapping("/sendMaill")
-    public Result sendMail(@RequestParam String to,
+    public Result sendMail(@RequestParam(required = false) Long disclosureId,
+                           @RequestParam String to,
                            @RequestParam String subject,
                            @RequestParam String content,
                            @RequestParam (required = false) String cc,
                            @RequestParam (required = false , defaultValue = "false") boolean isHtml,
                            @RequestParam (required = false)MultipartFile files){
 
-        return mailService.sendMail(to,subject,content,cc,isHtml,files);
+        return mailService.sendMail(disclosureId,to,subject,content,cc,isHtml,files);
     }
 
     @PostMapping("sendMailWithTemplate")

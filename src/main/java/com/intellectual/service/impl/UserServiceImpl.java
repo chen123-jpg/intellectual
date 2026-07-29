@@ -9,6 +9,8 @@ import com.intellectual.model.constants.Constants;
 import com.intellectual.model.dto.LoginDto;
 import com.intellectual.model.dto.LoginResult;
 import com.intellectual.model.dto.RegisterDto;
+import com.intellectual.model.dto.UserSaveDto;
+import com.intellectual.model.vo.UserVo;
 import com.intellectual.model.entity.Mail;
 import com.intellectual.model.entity.Menu;
 import com.intellectual.model.entity.Role;
@@ -27,6 +29,7 @@ import com.intellectual.utils.ArrayUtils;
 import com.intellectual.utils.JwtUtils;
 import com.intellectual.utils.PasswordUtils;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.BeanUtils;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -246,5 +249,96 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
 
         userMapper.update(userInfo,Wrappers.<User>lambdaUpdate().eq(User::getUserId,userId));
 
+    }
+
+    @Override
+    public UserVo getUserById(Long userId) {
+        User user = userMapper.selectById(userId);
+        if (user == null) {
+            throw new BusinessException("用户不存在");
+        }
+        UserVo vo = new UserVo();
+        BeanUtils.copyProperties(user, vo);
+        List<Long> roleIds = userRoleMapper.selectList(
+                        Wrappers.lambdaQuery(UserRole.class).eq(UserRole::getUserId, userId))
+                .stream().map(UserRole::getRoleId).collect(Collectors.toList());
+        vo.setRoleIds(roleIds);
+        return vo;
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    @Override
+    public void createUser(UserSaveDto dto) {
+        User existing = userMapper.selectOne(
+                Wrappers.lambdaQuery(User.class).eq(User::getLoginName, dto.getLoginName()));
+        if (existing != null) {
+            throw new BusinessException("账号已存在");
+        }
+        User user = new User();
+        BeanUtils.copyProperties(dto, user);
+        if (dto.getPassword() != null && !dto.getPassword().isBlank()) {
+            user.setPassword(PasswordUtils.encode(dto.getPassword()));
+        } else {
+            user.setPassword(PasswordUtils.encode("123456"));
+        }
+        user.setDelFlag("0");
+        if (user.getStatus() == null) {
+            user.setStatus("0");
+        }
+        if (user.getUserType() == null) {
+            user.setUserType("00");
+        }
+        userMapper.insert(user);
+
+        if (dto.getRoleIds() != null) {
+            for (Long roleId : dto.getRoleIds()) {
+                userRoleMapper.insertUserRole(user.getUserId(), roleId);
+            }
+        }
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    @Override
+    public void updateUser(UserSaveDto dto) {
+        User user = userMapper.selectById(dto.getUserId());
+        if (user == null) {
+            throw new BusinessException("用户不存在");
+        }
+        if (dto.getLoginName() != null && !dto.getLoginName().equals(user.getLoginName())) {
+            User existing = userMapper.selectOne(
+                    Wrappers.lambdaQuery(User.class).eq(User::getLoginName, dto.getLoginName()));
+            if (existing != null) {
+                throw new BusinessException("账号已存在");
+            }
+        }
+        if (dto.getLoginName() != null) user.setLoginName(dto.getLoginName());
+        if (dto.getUserName() != null) user.setUserName(dto.getUserName());
+        if (dto.getEmail() != null) user.setEmail(dto.getEmail());
+        if (dto.getPhoneNumber() != null) user.setPhoneNumber(dto.getPhoneNumber());
+        if (dto.getSex() != null) user.setSex(dto.getSex());
+        if (dto.getStatus() != null) user.setStatus(dto.getStatus());
+        if (dto.getDeptId() != null) user.setDeptId(dto.getDeptId());
+        if (dto.getRemark() != null) user.setRemark(dto.getRemark());
+        if (dto.getPassword() != null && !dto.getPassword().isBlank()) {
+            user.setPassword(PasswordUtils.encode(dto.getPassword()));
+        }
+        userMapper.updateById(user);
+
+        if (dto.getRoleIds() != null) {
+            userRoleMapper.delete(Wrappers.lambdaQuery(UserRole.class).eq(UserRole::getUserId, dto.getUserId()));
+            for (Long roleId : dto.getRoleIds()) {
+                userRoleMapper.insertUserRole(user.getUserId(), roleId);
+            }
+        }
+    }
+
+    @Override
+    public void deleteUser(Long userId) {
+        User user = userMapper.selectById(userId);
+        if (user == null) {
+            throw new BusinessException("用户不存在");
+        }
+        user.setDelFlag("2");
+        userMapper.updateById(user);
     }
 }

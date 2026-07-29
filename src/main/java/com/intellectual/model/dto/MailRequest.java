@@ -7,6 +7,8 @@ import java.util.Map;
 
 @Data
 public class MailRequest {
+    //交底Id
+    private Long disclosureId;
     /** 收件人，逗号/分号分隔 */
     private String to;
     /** 抄送，逗号/分号分隔 */

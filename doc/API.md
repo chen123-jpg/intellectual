@@ -307,6 +307,190 @@ GET /api/user/list
 
 ---
 
+### 2.2 用户详情
+
+```
+GET /api/user/{id}
+```
+
+> 需权限：`system:user:query`
+
+**响应**
+
+```json
+{
+  "code": 200,
+  "data": {
+    "userId": 1,
+    "deptId": null,
+    "loginName": "zhangsan",
+    "userName": "张三",
+    "userType": "01",
+    "email": "zhangsan@example.com",
+    "phoneNumber": "13800138000",
+    "sex": "0",
+    "status": "0",
+    "createTime": "2026-07-21T10:00:00",
+    "roleIds": [1, 2],
+    "remark": null
+  }
+}
+```
+
+> `roleIds` 为关联的角色 ID 列表；不存在时返回 `code: 500, message: "用户不存在"`
+
+---
+
+### 2.3 新增用户
+
+```
+POST /api/user
+```
+
+> 需权限：`system:user:add`
+
+**请求体** (JSON)
+
+```json
+{
+  "loginName": "lisi",
+  "userName": "李四",
+  "email": "lisi@example.com",
+  "phoneNumber": "13900139000",
+  "sex": "0",
+  "status": "0",
+  "deptId": 1,
+  "password": "123456",
+  "roleIds": [1, 2],
+  "remark": "备注"
+}
+```
+
+| 字段 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| loginName | string | 是 | 登录账号 |
+| userName | string | 否 | 用户昵称 |
+| email | string | 否 | 邮箱 |
+| phoneNumber | string | 否 | 手机号 |
+| sex | string | 否 | 0 男，1 女，2 未知 |
+| status | string | 否 | 0 正常，1 停用（默认 0） |
+| deptId | long | 否 | 部门 ID |
+| password | string | 否 | 密码（不传则默认 123456） |
+| roleIds | long[] | 否 | 角色 ID 列表 |
+| remark | string | 否 | 备注 |
+
+**响应** — 成功
+
+```json
+{ "code": 200, "message": "新增成功", "data": null }
+```
+
+> 可能失败原因：账号已存在
+
+---
+
+### 2.4 修改用户
+
+```
+PUT /api/user
+```
+
+> 需权限：`system:user:edit`
+
+**请求体** (JSON)
+
+```json
+{
+  "userId": 1,
+  "loginName": "lisi_new",
+  "userName": "李四(改)",
+  "email": "newlisi@example.com",
+  "status": "1"
+}
+```
+
+> 所有字段均为可选，仅更新传入的非 null 字段。`password` 仅在显式传入时才会更新。`roleIds` 传入时会先清旧角色再绑定新角色。
+
+| 字段 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| userId | long | 是 | 用户 ID |
+| loginName | string | 否 | 新登录账号 |
+| userName | string | 否 | 新昵称 |
+| email | string | 否 | 新邮箱 |
+| phoneNumber | string | 否 | 新手机号 |
+| sex | string | 否 | 性别 |
+| status | string | 否 | 状态 |
+| deptId | long | 否 | 部门 ID |
+| password | string | 否 | 新密码（不传则不改） |
+| roleIds | long[] | 否 | 角色 ID 列表（全量替换） |
+| remark | string | 否 | 备注 |
+
+**响应** — 成功
+
+```json
+{ "code": 200, "message": "修改成功", "data": null }
+```
+
+> 可能失败原因：用户不存在、新账号已存在
+
+---
+
+### 2.5 删除用户
+
+```
+DELETE /api/user/{id}
+```
+
+> 需权限：`system:user:remove`
+
+> 软删除，将 `delFlag` 置为 `"2"`，不会物理删除数据。
+
+**响应**
+
+```json
+{ "code": 200, "message": "删除成功", "data": null }
+```
+
+---
+
+### 2.6 Excel 导入用户
+
+```
+POST /api/excel/import
+```
+
+> 需权限：`system:user:import`
+> Content-Type: `multipart/form-data`
+
+**请求参数** (FormData)
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| file | file | 是 | Excel 文件（.xlsx / .xls） |
+
+**Excel 模板格式**
+
+| 列名 | 必填 | 说明 |
+|------|------|------|
+| 用户名 | 是 | 登录账号 |
+| 手机号 | 否 | 手机号码 |
+| 邮箱 | 否 | 邮箱地址 |
+| 角色 | 否 | 角色名称（需与系统中角色名一致） |
+
+**响应**
+
+```json
+{
+  "code": 200,
+  "message": "success",
+  "data": "导入完成：成功5条，跳过2条。详细信息：用户名[admin]已存在，跳过；用户[test]的角色[测试员]不存在，跳过"
+}
+```
+
+> 默认密码为 `123456`，用户类型为系统用户（00）。已存在的用户名和未匹配的角色名会自动跳过。
+
+---
+
 ## 三、用户角色接口 `/sys-user-role`
 
 > 对应数据表：`sys_user_role`（用户-角色关联表，无独立详情/修改接口）
@@ -328,7 +512,14 @@ GET /sys-user-role/list
 | userId | long | 否 | — | 用户 ID（精确） |
 | roleId | long | 否 | — | 角色 ID（精确） |
 
-**响应** — 分页格式 `{ records, total, pageNum, pageSize }`，`records` 为 `UserRole[]`
+**响应** — 分页格式 `{ records, total, pageNum, pageSize }`，`records` 各项字段：
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| userId | long | 用户 ID |
+| loginName | string | 登录账号 |
+| roleId | long | 角色 ID |
+| roleName | string | 角色名称 |
 
 ### 3.2 全部列表（不分页）
 
@@ -348,7 +539,17 @@ POST /sys-user-role
 
 **请求体** (JSON) — `UserRole` 对象（含 `userId`、`roleId`）
 
-### 3.4 删除
+### 3.4 编辑
+
+```
+PUT /sys-user-role
+```
+
+> 需权限：`system:userRole:edit`
+
+**请求体** (JSON) — `UserRole` 对象（含 `userId`、`roleId`，按 `roleId` 定位记录）
+
+### 3.5 删除
 
 ```
 DELETE /sys-user-role/{roleId}
@@ -356,7 +557,7 @@ DELETE /sys-user-role/{roleId}
 
 > 需权限：`system:userRole:delete`
 
-### 3.5 批量删除
+### 3.6 批量删除
 
 ```
 DELETE /sys-user-role/batch
@@ -486,7 +687,14 @@ GET /sys-role-menu/list
 | roleId | long | 否 | — | 角色 ID（精确） |
 | menuId | long | 否 | — | 菜单 ID（精确） |
 
-**响应** — 分页格式 `{ records, total, pageNum, pageSize }`，`records` 为 `RoleMenu[]`
+**响应** — 分页格式 `{ records, total, pageNum, pageSize }`，`records` 各项字段：
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| roleId | long | 角色 ID |
+| roleName | string | 角色名称 |
+| menuId | long | 菜单 ID |
+| menuName | string | 菜单名称 |
 
 ### 5.2 全部列表（不分页）
 
@@ -506,7 +714,17 @@ POST /sys-role-menu
 
 **请求体** (JSON) — `RoleMenu` 对象（含 `roleId`、`menuId`）
 
-### 5.4 删除
+### 5.4 编辑
+
+```
+PUT /sys-role-menu
+```
+
+> 需权限：`system:roleMenu:edit`
+
+**请求体** (JSON) — `RoleMenu` 对象（含 `roleId`、`menuId`，按 `menuId` 定位记录）
+
+### 5.5 删除
 
 ```
 DELETE /sys-role-menu/{menuId}
@@ -514,7 +732,7 @@ DELETE /sys-role-menu/{menuId}
 
 > 需权限：`system:roleMenu:delete`
 
-### 5.5 批量删除
+### 5.6 批量删除
 
 ```
 DELETE /sys-role-menu/batch
@@ -578,7 +796,7 @@ GET /sys-menu/list
 GET /sys-menu/all
 ```
 
-> 需权限：`system:menu:list`
+> **需认证**（根据当前用户权限过滤，无权限标识的菜单/目录所有人可见）
 
 ### 6.3 详情
 
@@ -672,7 +890,7 @@ GET /api/mail-template/list
 GET /api/mail-template/all
 ```
 
-> 需权限：`system:mailTemplate:list`
+> **需认证**
 
 ### 7.3 详情
 
@@ -680,7 +898,7 @@ GET /api/mail-template/all
 GET /api/mail-template/{id}
 ```
 
-> 需权限：`system:mailTemplate:query`
+> **需认证**
 
 ### 7.4 新增
 
@@ -791,12 +1009,13 @@ POST /api/mail/sendMaill
 
 | 参数 | 类型 | 必填 | 默认值 | 说明 |
 |------|------|------|--------|------|
+| disclosureId | long | 否 | — | 关联专利交底ID，非必填 |
 | to | string | 是 | — | 收件人邮箱 |
 | subject | string | 是 | — | 邮件主题 |
 | content | string | 是 | — | 邮件正文 |
 | cc | string | 否 | — | 抄送邮箱 |
 | isHtml | boolean | 否 | false | 正文是否为 HTML |
-| files | file | 否 | — | 附件 |
+| files | file | 否 | — | 附件，发送成功后会记录到 `mail_send_attachment` 表 |
 
 **响应**
 
@@ -818,6 +1037,7 @@ POST /api/mail/sendMailWithTemplate
 
 ```json
 {
+  "disclosureId": 1,
   "to": "user@example.com",
   "cc": "cc@example.com",
   "subject": "邮件主题",
@@ -835,13 +1055,14 @@ POST /api/mail/sendMailWithTemplate
 
 | 字段 | 类型 | 必填 | 说明 |
 |------|------|------|------|
+| disclosureId | long | 否 | 关联专利交底ID，非必填 |
 | to | string | 是 | 收件人，逗号/分号分隔多人 |
 | cc | string | 否 | 抄送，逗号/分号分隔多人 |
 | subject | string | 否 | 主题（模板优先时可为空） |
 | text | string | 否 | 正文（模板优先时可为空） |
 | templateCode | string | 否 | 模板编码，选用模板时传入 |
 | templateData | map | 否 | 模板变量，用于 Thymeleaf 渲染 |
-| attachmentUrls | string[] | 否 | 附件 URL 列表，来自上传接口返回的路径 |
+| attachmentUrls | string[] | 否 | 附件 URL 列表，来自上传接口返回的路径，发送成功后会记录到 `mail_send_attachment` 表 |
 
 ---
 
@@ -1487,7 +1708,7 @@ POST /api/ttable/{id}/packages
 
 ---
 
-## 十二、代理人/申请人接口 `/api/agent`
+## 十二、代理人/申请人接口
 
 > 对应数据表：`agent`、`applicant`
 
@@ -1577,7 +1798,7 @@ DELETE /api/agent/batch
 ### 12.8 申请人分页列表
 
 ```
-GET /api/agent/applicant/list
+GET /api/applicant/list
 ```
 
 > 需权限：`patent:applicant:list`
@@ -1604,7 +1825,7 @@ GET /api/agent/applicant/list
 ### 12.9 申请人全部列表（不分页）
 
 ```
-GET /api/agent/applicant/all
+GET /api/applicant/all
 ```
 
 > 需权限：`patent:applicant:list`
@@ -1612,7 +1833,7 @@ GET /api/agent/applicant/all
 ### 12.10 申请人详情
 
 ```
-GET /api/agent/applicant/{id}
+GET /api/applicant/{id}
 ```
 
 > 需权限：`patent:applicant:query`
@@ -1620,7 +1841,7 @@ GET /api/agent/applicant/{id}
 ### 12.11 申请人新增
 
 ```
-POST /api/agent/applicant
+POST /api/applicant
 ```
 
 > 需权限：`patent:applicant:add`
@@ -1630,7 +1851,7 @@ POST /api/agent/applicant
 ### 12.12 申请人修改
 
 ```
-PUT /api/agent/applicant
+PUT /api/applicant
 ```
 
 > 需权限：`patent:applicant:edit`
@@ -1640,7 +1861,7 @@ PUT /api/agent/applicant
 ### 12.13 申请人删除
 
 ```
-DELETE /api/agent/applicant/{id}
+DELETE /api/applicant/{id}
 ```
 
 > 需权限：`patent:applicant:delete`
@@ -1648,7 +1869,7 @@ DELETE /api/agent/applicant/{id}
 ### 12.14 申请人批量删除
 
 ```
-DELETE /api/agent/applicant/batch
+DELETE /api/applicant/batch
 ```
 
 > 需权限：`patent:applicant:delete`
@@ -1804,10 +2025,15 @@ PUT /api/application-package/{id}/confirm
 ### 系统管理
 ```
 system:user:list               — 用户列表
-system:userRole:list|add|delete       — 用户角色关联
+system:user:query              — 用户详情
+system:user:add                — 新增用户
+system:user:edit               — 修改用户
+system:user:remove             — 删除用户
+system:user:import             — Excel 导入用户
+system:userRole:list|add|edit|delete   — 用户角色关联
 system:role:list|query|add|edit|delete — 角色管理
 system:menu:list|query|add|edit|delete — 菜单管理
-system:roleMenu:list|add|delete        — 角色菜单关联
+system:roleMenu:list|add|edit|delete    — 角色菜单关联
 system:mailTemplate:list|query|add|edit|delete — 邮件模板管理
 ```
 

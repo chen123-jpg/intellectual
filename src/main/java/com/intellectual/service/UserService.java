@@ -3,6 +3,8 @@ package com.intellectual.service;
 import com.intellectual.model.dto.LoginDto;
 import com.intellectual.model.dto.LoginResult;
 import com.intellectual.model.dto.RegisterDto;
+import com.intellectual.model.dto.UserSaveDto;
+import com.intellectual.model.vo.UserVo;
 import com.intellectual.model.entity.User;
 import com.baomidou.mybatisplus.extension.service.IService;
 
@@ -33,7 +35,27 @@ public interface UserService extends IService<User> {
      */
     LoginResult login(LoginDto loginDto);
 
-    void saveAuthCode(Long userId,String email,String authCode);
+    void saveAuthCode(Long userId, String email, String authCode);
 
     void changePassword(Long userId, String oldPassword, String newPassword);
+
+    /**
+     * 查询用户详情（含角色ID列表）
+     */
+    UserVo getUserById(Long userId);
+
+    /**
+     * 新增用户（含角色绑定）
+     */
+    void createUser(UserSaveDto dto);
+
+    /**
+     * 修改用户（含角色更新）
+     */
+    void updateUser(UserSaveDto dto);
+
+    /**
+     * 删除用户（软删除，delFlag=2）
+     */
+    void deleteUser(Long userId);
 }

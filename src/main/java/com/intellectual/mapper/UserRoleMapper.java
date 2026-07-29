@@ -1,6 +1,8 @@
 package com.intellectual.mapper;
 
+import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
 import com.intellectual.model.entity.UserRole;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 
@@ -12,4 +14,7 @@ import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 */
 @Mapper
 public interface UserRoleMapper extends BaseMapper<UserRole> {
+
+    @Insert("INSERT INTO sys_user_role (user_id, role_id) VALUES (#{userId}, #{roleId})")
+    int insertUserRole(@Param("userId") Long userId, @Param("roleId") Long roleId);
 }

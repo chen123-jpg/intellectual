@@ -1,5 +1,6 @@
 package com.intellectual.service;
 
+import com.intellectual.model.dto.Result;
 import com.intellectual.model.entity.MailSendLog;
 import com.baomidou.mybatisplus.extension.service.IService;
 
@@ -11,4 +12,5 @@ import com.baomidou.mybatisplus.extension.service.IService;
  */
 public interface MailSendLogService extends IService<MailSendLog> {
 
+    Result getlogById(Long disclosureId);
 }

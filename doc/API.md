@@ -1188,6 +1188,27 @@ GET /api/ttable/all
 
 **响应** — `data` 为 `PatentDisclosure[]` 数组
 
+### 10.3.1 主办人候选列表
+
+```
+GET /api/ttable/sponsor-options
+```
+
+> 需权限：`patent:disclosure:add` 或 `patent:disclosure:edit`
+
+只返回账号正常、未删除并拥有 `organizer` 角色的用户。响应仅包含选择主办人所需的最小字段：
+
+```json
+{
+  "code": 200,
+  "data": [
+    { "userId": 12, "userName": "张三", "loginName": "zhangsan" }
+  ]
+}
+```
+
+新增交底时必须提交选中项的 `sponsorUserId`；后端会重新校验用户状态和角色，并以系统用户姓名覆盖客户端提交的 `sponsor`，防止伪造归属。
+
 ### 10.4 详情
 
 ```
@@ -1252,6 +1273,7 @@ PUT /api/ttable
 > 需权限：`patent:disclosure:edit`
 
 > `projectInitiator`（立项专员）拥有该权限，但后端仍按 `entryUserId` 校验数据范围，只允许编辑本人录入的交底；管理员可编辑全部可见交底。
+> `organizer`（主办人）只能编辑分配给自己的交底，且请求中的 `sponsorUserId` 和 `sponsor` 会被后端忽略，不能借此将交底改派给自己或其他人。
 
 **请求体** (JSON) — `PatentDisclosureDTO` 对象，`id`、`disclosureName`、`patentType` 必填。
 请求体中的服务端维护字段会被忽略。

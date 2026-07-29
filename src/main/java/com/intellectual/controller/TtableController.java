@@ -6,6 +6,7 @@ import com.intellectual.exception.BusinessException;
 import com.intellectual.model.dto.PatentDisclosureDTO;
 import com.intellectual.model.dto.Result;
 import com.intellectual.model.entity.*;
+import com.intellectual.model.vo.SponsorOptionVo;
 import com.intellectual.security.LoginUser;
 import com.intellectual.service.*;
 import com.intellectual.service.impl.UploadFileServiceImpl;
@@ -56,6 +57,17 @@ public class TtableController {
 
     @Autowired
     private UploadFileServiceImpl uploadFileService;
+
+    @Autowired
+    private SponsorDirectoryService sponsorDirectoryService;
+
+    /** 新增或调整交底归属时可选择的启用主办人。不会暴露完整系统用户信息。 */
+    @RequirePermission(value = {"patent:disclosure:add", "patent:disclosure:edit"},
+            logical = RequirePermission.Logical.OR)
+    @GetMapping("/sponsor-options")
+    public Result sponsorOptions() {
+        return Result.success(sponsorDirectoryService.listActiveSponsors());
+    }
 
     /** 分页列表 */
     @RequirePermission("patent:disclosure:list")
@@ -167,6 +179,7 @@ public class TtableController {
             @RequestPart("disclosureDocument") List<MultipartFile> disclosureDocuments,
             @RequestPart(value = "otherAttachments", required = false) List<MultipartFile> otherAttachments,
             @RequestParam(value = "sourceId", required = false) Long sourceId) {
+        normalizeSponsor(request);
         if (sourceId != null && getVisibleDisclosure(sourceId) == null) {
             return Result.fail("复制来源交底记录不存在");
         }
@@ -189,8 +202,20 @@ public class TtableController {
         if (request.getId() == null) {
             return Result.fail("ID不能为空");
         }
-        if (getVisibleDisclosure(request.getId()) == null) {
+        PatentDisclosure existing = getVisibleDisclosure(request.getId());
+        if (existing == null) {
             return Result.fail("交底记录不存在");
+        }
+        LoginUser loginUser = getLoginUser();
+        if (loginUser != null && hasRole(loginUser, ROLE_ORGANIZER)
+                && !hasRole(loginUser, ROLE_ADMIN)) {
+            request.setSponsorUserId(existing.getSponsorUserId());
+            request.setSponsor(existing.getSponsor());
+        } else if (request.getSponsorUserId() == null && existing.getSponsorUserId() != null) {
+            request.setSponsorUserId(existing.getSponsorUserId());
+            request.setSponsor(existing.getSponsor());
+        } else {
+            normalizeSponsor(request);
         }
         PatentDisclosure disclosure = toDisclosure(request, false);
         if (!patentDisclosureService.updateWithRelatedRecords(disclosure)) {
@@ -530,11 +555,15 @@ public class TtableController {
         return filename.substring(dotIndex + 1).toLowerCase(Locale.ROOT);
     }
 
-    /** 立项人员只能查询自己创建的交底；管理员保持全量数据权限。 */
+    /** 立项人员只看自己录入的交底，主办人只看分配给自己的交底；管理员保持全量数据权限。 */
     private void applyDisclosureDataScope(LambdaQueryWrapper<PatentDisclosure> wrapper) {
         LoginUser loginUser = getLoginUser();
-        if (loginUser != null && hasRole(loginUser, ROLE_PROJECT_INITIATOR)
-                && !hasRole(loginUser, ROLE_ADMIN)) {
+        if (loginUser == null || hasRole(loginUser, ROLE_ADMIN)) {
+            return;
+        }
+        if (hasRole(loginUser, ROLE_ORGANIZER)) {
+            wrapper.eq(PatentDisclosure::getSponsorUserId, loginUser.getUserId());
+        } else if (hasRole(loginUser, ROLE_PROJECT_INITIATOR)) {
             wrapper.eq(PatentDisclosure::getEntryUserId, loginUser.getUserId());
         }
     }
@@ -543,13 +572,25 @@ public class TtableController {
     private PatentDisclosure getVisibleDisclosure(Long id) {
         PatentDisclosure disclosure = patentDisclosureService.getById(id);
         LoginUser loginUser = getLoginUser();
-        if (disclosure != null && loginUser != null
+        if (disclosure == null || loginUser == null || hasRole(loginUser, ROLE_ADMIN)) {
+            return disclosure;
+        }
+        if (hasRole(loginUser, ROLE_ORGANIZER)
+                && !Objects.equals(disclosure.getSponsorUserId(), loginUser.getUserId())) {
+            return null;
+        }
+        if (!hasRole(loginUser, ROLE_ORGANIZER)
                 && hasRole(loginUser, ROLE_PROJECT_INITIATOR)
-                && !hasRole(loginUser, ROLE_ADMIN)
                 && !Objects.equals(disclosure.getEntryUserId(), loginUser.getUserId())) {
             return null;
         }
         return disclosure;
+    }
+
+    private void normalizeSponsor(PatentDisclosureDTO request) {
+        SponsorOptionVo sponsor = sponsorDirectoryService.requireActiveSponsor(request.getSponsorUserId());
+        request.setSponsorUserId(sponsor.getUserId());
+        request.setSponsor(sponsor.getUserName());
     }
 
     private boolean hasRole(LoginUser loginUser, String role) {

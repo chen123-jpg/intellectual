@@ -191,7 +191,7 @@ public class MailServiceImpl extends ServiceImpl<MailMapper, Mail> implements Ma
                                    String businessType, String businessRef, String businessAction) {
         businessMailContext.set(new BusinessMailContext(businessType, businessRef, businessAction));
         try {
-            return sendMail(to, subject, content, null, true, null);
+            return sendMail(null,to, subject, content, null, true, null);
         } finally {
             businessMailContext.remove();
         }

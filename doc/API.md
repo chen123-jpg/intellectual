@@ -67,13 +67,37 @@ GET /api/acount/checkCode
 
 ---
 
-### 1.2 用户注册
+### 1.2 获取手机验证码
+
+```
+GET /api/acount/getSmsCode
+```
+
+> **公开接口**，无需认证
+
+**请求参数** (Query)
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| mobile | string | 是 | 手机号码（`1[3-9]` 开头 11 位） |
+
+**响应**
+
+```json
+{ "code": 200, "message": "验证码发送成功", "data": null }
+```
+
+> 验证码 5 分钟内有效，同一手机号 60 秒内不允许重复发送。验证码存入 Redis，登录/注册时校验后立即删除。
+
+---
+
+### 1.3 用户注册
 
 ```
 POST /api/acount/register
 ```
 
-> **公开接口**
+> **公开接口**。注册时系统会根据邮箱域名自动识别 SMTP 服务器地址与端口，无需手动填写。
 
 **请求体** (JSON)
 
@@ -82,6 +106,7 @@ POST /api/acount/register
   "loginName": "zhangsan",
   "email": "zhangsan@example.com",
   "phoneNumber": "13800138000",
+  "smsCode": "123456",
   "password": "123456",
   "checkCodeKey": "uuid-from-checkCode",
   "checkCode": "8"
@@ -93,9 +118,10 @@ POST /api/acount/register
 | loginName | string | 是 | 3~30 位 |
 | email | string | 是 | 合法邮箱格式 |
 | phoneNumber | string | 是 | `1[3-9]` 开头 11 位 |
+| smsCode | string | 是 | 6 位手机验证码 |
 | password | string | 是 | 6~20 位 |
-| checkCodeKey | string | 否 | 验证码 Key |
-| checkCode | string | 是 | 用户输入的验证码结果 |
+| checkCodeKey | string | 否 | 图形验证码 Key |
+| checkCode | string | 是 | 用户输入的图形验证码结果 |
 
 **响应** — 成功
 
@@ -109,23 +135,25 @@ POST /api/acount/register
 { "code": 500, "message": "账号已存在", "data": null }
 ```
 
-> 可能失败原因：账号已存在、邮箱已被注册、验证码错误或过期
+> 可能失败原因：账号已存在、邮箱已被注册、图形验证码错误或过期、手机验证码错误或过期
 
 ---
 
-### 1.3 用户登录
+### 1.4 用户登录
 
 ```
 POST /api/acount/login
 ```
 
-> **公开接口**
+> **公开接口**。支持两种登录方式：**账号+密码** 或 **手机号+密码**，均需提供手机验证码和图形验证码。
 
 **请求体** (JSON)
 
 ```json
 {
   "loginName": "zhangsan",
+  "phoneNumber": "13800138000",
+  "smsCode": "123456",
   "password": "123456",
   "checkCodeKey": "uuid-from-checkCode",
   "checkCode": "8"
@@ -134,11 +162,12 @@ POST /api/acount/login
 
 | 字段 | 类型 | 必填 | 说明 |
 |------|------|------|------|
-| loginName | string | 否 | 登录账号（与 phoneNumber 二选一） |
-| phoneNumber | string | 否 | 手机号（与 loginName 二选一） |
+| loginName | string | 否 | 登录账号（与 phoneNumber 二选一，优先使用 loginName） |
+| phoneNumber | string | 否 | 手机号（loginName 为空时使用） |
+| smsCode | string | 是 | 6 位手机验证码 |
 | password | string | 是 | 密码 |
-| checkCodeKey | string | 否 | 验证码 Key |
-| checkCode | string | 是 | 验证码结果 |
+| checkCodeKey | string | 否 | 图形验证码 Key |
+| checkCode | string | 是 | 图形验证码结果 |
 
 **响应** — 成功
 
@@ -162,7 +191,7 @@ POST /api/acount/login
 
 ---
 
-### 1.4 退出登录
+### 1.5 退出登录
 
 ```
 POST /api/acount/logout
@@ -180,7 +209,7 @@ POST /api/acount/logout
 
 ---
 
-### 1.5 获取当前用户信息
+### 1.6 获取当前用户信息
 
 ```
 GET /api/acount/me
@@ -208,21 +237,21 @@ GET /api/acount/me
 
 ---
 
-### 1.6 保存邮箱授权码
+### 1.7 保存邮箱授权码
 
 ```
 POST /api/acount/authCode
 ```
 
-> **需认证**
+> **需认证**。SMTP 服务器地址与端口已在注册时根据邮箱域名自动识别，此处只需填写邮箱 SMTP 授权码。
 
 **请求参数** (Form / Query)
 
 | 参数 | 类型 | 必填 | 说明 |
 |------|------|------|------|
-| userId | long | 是 | 用户 ID |
+| userId | long | 是 | 用户 ID（需与当前登录用户一致） |
 | email | string | 是 | 邮箱地址 |
-| authCode | string | 是 | 邮箱 SMTP 授权码 |
+| authCode | string | 是 | 邮箱 SMTP 授权码（非邮箱登录密码） |
 
 **响应**
 
@@ -230,9 +259,11 @@ POST /api/acount/authCode
 { "code": 200, "message": "success", "data": null }
 ```
 
+> 授权码保存失败时（如用户 ID 不匹配）静默返回，不报错。
+
 ---
 
-### 1.7 修改密码
+### 1.8 修改密码
 
 ```
 POST /api/acount/password
@@ -1015,7 +1046,8 @@ POST /api/mail/sendMaill
 | content | string | 是 | — | 邮件正文 |
 | cc | string | 否 | — | 抄送邮箱 |
 | isHtml | boolean | 否 | false | 正文是否为 HTML |
-| files | file | 否 | — | 附件，发送成功后会记录到 `mail_send_attachment` 表 |
+| files | file | 否 | — | 附件文件，发送成功后会记录到 `mail_send_attachment` 表 |
+| disclosureAttachmentIds | long[] | 否 | — | 关联的交底附件ID列表，用于标记附件来源，逗号分隔 |
 
 **响应**
 
@@ -1049,7 +1081,8 @@ POST /api/mail/sendMailWithTemplate
   },
   "attachmentUrls": [
     "/files/a1b2c3d4.pdf?name=附件1.pdf"
-  ]
+  ],
+  "disclosureAttachmentIds": [1, 2]
 }
 ```
 
@@ -1063,6 +1096,58 @@ POST /api/mail/sendMailWithTemplate
 | templateCode | string | 否 | 模板编码，选用模板时传入 |
 | templateData | map | 否 | 模板变量，用于 Thymeleaf 渲染 |
 | attachmentUrls | string[] | 否 | 附件 URL 列表，来自上传接口返回的路径，发送成功后会记录到 `mail_send_attachment` 表 |
+| disclosureAttachmentIds | long[] | 否 | 关联的交底附件ID列表，与attachmentUrls按索引一一对应，用于标记附件来源 |
+
+---
+
+### 9.3 邮件发送日志查询
+
+```
+GET /api/mail-send-log
+```
+
+> **需认证**
+
+**请求参数** (Query)
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| disclosureId | long | 否 | 专利交底 ID，不传则返回全部发送记录 |
+
+**响应** — `data` 为对象数组，每个对象包含 `mailSendLog` 和 `attachmentList`：
+
+`mailSendLog` 字段：
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| id | long | 主键 |
+| disclosureId | long | 关联交底 ID |
+| fromEmail | string | 发件人邮箱 |
+| toEmails | string | 收件人 |
+| ccEmails | string | 抄送 |
+| subject | string | 邮件主题 |
+| content | string | 邮件正文 |
+| sendStatus | int | 0 PENDING / 1 SUCCESS / 2 FAILED |
+| errorMessage | string | 失败原因 |
+| senderUserId | long | 发送人用户 ID |
+| senderName | string | 发送人姓名 |
+| businessType | string | 业务类型（如 APPLICATION_PACKAGE） |
+| businessRef | string | 业务关联标识 |
+| businessAction | string | 业务动作（SEND/REJECT/APPROVE/UNLOCK/SUBMIT） |
+| sentAt | datetime | 实际发送时间 |
+| createTime | datetime | 创建时间 |
+
+`attachmentList` 为 `MailSendAttachment[]`，各字段：
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| id | long | 主键 |
+| mailSendLogId | long | 关联发送记录 ID |
+| disclosureAttachmentId | long | 来源交底附件 ID，可空 |
+| fileName | string | 文件名 |
+| filePath | string | 磁盘路径 |
+| fileUrl | string | 访问 URL |
+| fileSize | long | 文件大小（字节） |
 
 ---
 

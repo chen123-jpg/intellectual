@@ -6,6 +6,8 @@ import com.intellectual.model.entity.Mail;
 import com.baomidou.mybatisplus.extension.service.IService;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.List;
+
 /**
  * 用户邮箱表 服务类接口
  *
@@ -13,7 +15,7 @@ import org.springframework.web.multipart.MultipartFile;
  * @since 2026-07-23 19:09
  */
 public interface MailService extends IService<Mail> {
-    Result sendMail(Long disclosureId,String to, String subject, String content, String cc, boolean isHtml, MultipartFile files);
+    Result sendMail(Long disclosureId, String to, String subject, String content, String cc, boolean isHtml, MultipartFile files, List<Long> disclosureAttachmentIds);
 
     Result sendMailWithTemplate(MailRequest request);
 

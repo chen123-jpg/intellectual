@@ -39,6 +39,8 @@ import java.util.Date;
 import java.util.List;
 import java.util.Properties;
 
+import org.springframework.core.io.FileSystemResource;
+
 @Slf4j
 @Service
 public class MailServiceImpl extends ServiceImpl<MailMapper, Mail> implements MailService {
@@ -276,27 +278,47 @@ public class MailServiceImpl extends ServiceImpl<MailMapper, Mail> implements Ma
             if (request.getCc() != null && !request.getCc().isBlank()) {
                 helper.setCc(request.getCc().split("[,;]"));
             }
+            if (request.getBcc() != null && !request.getBcc().isBlank()) {
+                helper.setBcc(request.getBcc().split("[,;]"));
+            }
             helper.setSubject(subject);
-            helper.setText(content, true);
 
-            // 添加附件到邮件
+            // 先处理附件/图片：图片 URL 替换为 <img> 标签后再设置正文
             if (request.getAttachmentUrls() != null) {
                 for (String fileUrl : request.getAttachmentUrls()) {
                     try {
                         Path diskPath = resolvePath(fileUrl);
-                        if (Files.exists(diskPath)) {
-                            String encodedName = UriComponentsBuilder.fromUriString(fileUrl)
-                                    .build().getQueryParams().getFirst("name");
-                            String attachName = encodedName != null
-                                    ? URLDecoder.decode(encodedName, StandardCharsets.UTF_8)
-                                    : diskPath.getFileName().toString();
-                            helper.addAttachment(attachName, diskPath.toFile());
+                        if (!Files.exists(diskPath)) continue;
+                        String encodedName = UriComponentsBuilder.fromUriString(fileUrl)
+                                .build().getQueryParams().getFirst("name");
+                        String attachName = encodedName != null
+                                ? URLDecoder.decode(encodedName, StandardCharsets.UTF_8)
+                                : diskPath.getFileName().toString();
+                        if (isImageFile(attachName)) {
+                            String cid = "img-" + System.currentTimeMillis() + "-" + attachName.replaceAll("[^a-zA-Z0-9.]", "_");
+                            helper.addInline(cid, new FileSystemResource(diskPath), inferMimeType(attachName));
+                            String srcAttr = "src=\"" + fileUrl + "\"";
+                            String imgTag = "<img src=\"cid:" + cid + "\" style=\"max-width:100%\" />";
+                            if (content.contains(srcAttr)) {
+                                // URL 已在 <img src="..."> 中，只替换 src 值
+                                content = content.replace(srcAttr, "src=\"cid:" + cid + "\"");
+                            } else if (content.contains(fileUrl)) {
+                                // URL 作为纯文本出现在正文中，替换为 <img> 标签
+                                content = content.replace(fileUrl, imgTag);
+                            } else {
+                                // URL 未在正文中出现，追加到正文末尾
+                                content = content + "<br/>" + imgTag;
+                            }
+                            log.info("内联图片: {} -> cid:{}", fileUrl, cid);
+                        } else {
+                            helper.addAttachment(attachName, new FileSystemResource(diskPath));
                         }
                     } catch (Exception e) {
-                        log.error("添加附件到邮件失败: {}", fileUrl, e);
+                        log.error("添加附件/图片到邮件失败: {}", fileUrl, e);
                     }
                 }
             }
+            helper.setText(content, true);
 
             mailSender.send(message);
             log.info("模板邮件已从 {} 发送至 {}", email, request.getTo());
@@ -401,6 +423,25 @@ public class MailServiceImpl extends ServiceImpl<MailMapper, Mail> implements Ma
                 log.warn("删除上传文件失败: {}", diskPath, e);
             }
         }
+    }
+
+    private boolean isImageFile(String fileName) {
+        if (fileName == null) return false;
+        String lower = fileName.toLowerCase();
+        return lower.endsWith(".jpg") || lower.endsWith(".jpeg") || lower.endsWith(".png")
+                || lower.endsWith(".gif") || lower.endsWith(".webp") || lower.endsWith(".bmp")
+                || lower.endsWith(".svg");
+    }
+
+    private String inferMimeType(String fileName) {
+        if (fileName == null) return "application/octet-stream";
+        String lower = fileName.toLowerCase();
+        if (lower.endsWith(".png")) return "image/png";
+        if (lower.endsWith(".gif")) return "image/gif";
+        if (lower.endsWith(".webp")) return "image/webp";
+        if (lower.endsWith(".bmp")) return "image/bmp";
+        if (lower.endsWith(".svg")) return "image/svg+xml";
+        return "image/jpeg";
     }
 
     private String buildSendErrorMsg(Exception e) {

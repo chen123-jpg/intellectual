@@ -13,6 +13,8 @@ public class MailRequest {
     private String to;
     /** 抄送，逗号/分号分隔 */
     private String cc;
+    /** 密送，逗号/分号分隔 */
+    private String bcc;
     /** 主题（若不使用模板则直接使用） */
     private String subject;
     /** 正文（若不使用模板则直接使用） */

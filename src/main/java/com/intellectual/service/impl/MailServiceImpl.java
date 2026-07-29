@@ -36,6 +36,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Date;
+import java.util.List;
 import java.util.Properties;
 
 @Slf4j
@@ -70,7 +71,7 @@ public class MailServiceImpl extends ServiceImpl<MailMapper, Mail> implements Ma
     }
 
     public Result sendMail(Long disclosureId, String to, String subject, String content, String cc,
-                           boolean isHtml, MultipartFile file) {
+                           boolean isHtml, MultipartFile file, List<Long> disclosureAttachmentIds) {
         LoginUser loginUser = (LoginUser) SecurityContextHolder.getContext()
                 .getAuthentication().getPrincipal();
 
@@ -165,6 +166,9 @@ public class MailServiceImpl extends ServiceImpl<MailMapper, Mail> implements Ma
                 attachment.setFileUrl(recordFileUrl);
                 attachment.setFileSize(recordFileSize);
                 attachment.setCreateTime(new Date());
+                if (disclosureAttachmentIds != null && !disclosureAttachmentIds.isEmpty()) {
+                    attachment.setDisclosureAttachmentId(disclosureAttachmentIds.get(0));
+                }
                 mailSendAttachmentService.save(attachment);
             }
 
@@ -191,7 +195,7 @@ public class MailServiceImpl extends ServiceImpl<MailMapper, Mail> implements Ma
                                    String businessType, String businessRef, String businessAction) {
         businessMailContext.set(new BusinessMailContext(businessType, businessRef, businessAction));
         try {
-            return sendMail(null,to, subject, content, null, true, null);
+            return sendMail(null, to, subject, content, null, true, null, null);
         } finally {
             businessMailContext.remove();
         }
@@ -211,30 +215,41 @@ public class MailServiceImpl extends ServiceImpl<MailMapper, Mail> implements Ma
             return Result.fail("未填写授权码，请在个人中心填写后重试");
         }
 
-        // 1. 查找模板
-        MailTemplate template = mailTemplateService.getOne(
-                new LambdaQueryWrapper<MailTemplate>()
-                        .eq(MailTemplate::getTemplateCode, request.getTemplateCode())
-                        .eq(MailTemplate::getEnabled, 1)
-        );
-        if (template == null) {
-            return Result.fail("模板不存在或未启用");
+        // 1. 渲染主题和正文
+        String subject;
+        String content;
+        if (request.getTemplateCode() != null && !request.getTemplateCode().isBlank()) {
+            MailTemplate template = mailTemplateService.getOne(
+                    new LambdaQueryWrapper<MailTemplate>()
+                            .eq(MailTemplate::getTemplateCode, request.getTemplateCode())
+                            .eq(MailTemplate::getEnabled, 1)
+            );
+            if (template == null) {
+                return Result.fail("模板不存在或未启用");
+            }
+            Context context = new Context();
+            if (request.getTemplateData() != null) {
+                context.setVariables(request.getTemplateData());
+            }
+            subject = request.getSubject() != null && !request.getSubject().isBlank()
+                    ? request.getSubject()
+                    : templateEngine.process(template.getSubject(), context);
+            content = request.getText() != null && !request.getText().isBlank()
+                    ? request.getText()
+                    : templateEngine.process(template.getContent(), context);
+        } else {
+            subject = request.getSubject();
+            content = request.getText();
+            if (subject == null || subject.isBlank()) {
+                return Result.fail("主题不能为空");
+            }
+            if (content == null || content.isBlank()) {
+                return Result.fail("正文不能为空");
+            }
         }
 
-        // 2. 渲染模板
-        Context context = new Context();
-        if (request.getTemplateData() != null) {
-            context.setVariables(request.getTemplateData());
-        }
-        String subject = request.getSubject() != null && !request.getSubject().isBlank()
-                ? request.getSubject()
-                : templateEngine.process(template.getSubject(), context);
-        String content = request.getText() != null && !request.getText().isBlank()
-                ? request.getText()
-                : templateEngine.process(template.getContent(), context);
-
-        log.info("sendMailWithTemplate 请求参数: disclosureId={}, to={}, templateCode={}, attachmentUrls={}",
-                request.getDisclosureId(), request.getTo(), request.getTemplateCode(), request.getAttachmentUrls());
+        log.info("sendMailWithTemplate 请求参数: disclosureId={}, to={}, templateCode={}, attachmentUrls={}, disclosureAttachmentIds={}",
+                request.getDisclosureId(), request.getTo(), request.getTemplateCode(), request.getAttachmentUrls(), request.getDisclosureAttachmentIds());
 
         // 3. 保存发送记录 (PENDING)
         MailSendLog sendLog = new MailSendLog();
@@ -288,11 +303,14 @@ public class MailServiceImpl extends ServiceImpl<MailMapper, Mail> implements Ma
 
             // 5. 发送成功后才保存附件记录
             if (request.getAttachmentUrls() != null && !request.getAttachmentUrls().isEmpty()) {
-                for (String fileUrl : request.getAttachmentUrls()) {
+                List<Long> attachmentIdList = request.getDisclosureAttachmentIds();
+                for (int i = 0; i < request.getAttachmentUrls().size(); i++) {
                     try {
-                        saveAttachmentRecord(sendLog.getId(), fileUrl);
+                        Long disclosureAttachmentId = (attachmentIdList != null && i < attachmentIdList.size())
+                                ? attachmentIdList.get(i) : null;
+                        saveAttachmentRecord(sendLog.getId(), request.getAttachmentUrls().get(i), disclosureAttachmentId);
                     } catch (Exception e) {
-                        log.error("附件记录保存失败: {}", fileUrl, e);
+                        log.error("附件记录保存失败: {}", request.getAttachmentUrls().get(i), e);
                     }
                 }
             }
@@ -348,7 +366,7 @@ public class MailServiceImpl extends ServiceImpl<MailMapper, Mail> implements Ma
         return uploadPath.resolve(fileId).normalize();
     }
 
-    private void saveAttachmentRecord(Long sendLogId, String fileUrl) {
+    private void saveAttachmentRecord(Long sendLogId, String fileUrl, Long disclosureAttachmentId) {
         String encodedName = UriComponentsBuilder.fromUriString(fileUrl)
                 .build().getQueryParams().getFirst("name");
         String originalName = encodedName != null
@@ -365,6 +383,7 @@ public class MailServiceImpl extends ServiceImpl<MailMapper, Mail> implements Ma
 
         MailSendAttachment attachment = new MailSendAttachment();
         attachment.setMailSendLogId(sendLogId);
+        attachment.setDisclosureAttachmentId(disclosureAttachmentId);
         attachment.setFileName(originalName);
         attachment.setFilePath(diskPath.toString());
         attachment.setFileUrl(fileUrl);

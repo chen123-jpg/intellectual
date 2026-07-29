@@ -33,11 +33,12 @@ public class MailSendLogServiceImpl extends ServiceImpl<MailSendLogMapper, MailS
 
     @Override
     public Result getlogById(Long disclosureId) {
-        List<MailSendLog> logList = mailSendLogMapper.selectList(
-                Wrappers.lambdaQuery(MailSendLog.class)
-                        .eq(MailSendLog::getDisclosureId, disclosureId)
-                        .orderByDesc(MailSendLog::getCreateTime)
-        );
+        var query = Wrappers.lambdaQuery(MailSendLog.class)
+                .orderByDesc(MailSendLog::getCreateTime);
+        if (disclosureId != null) {
+            query.eq(MailSendLog::getDisclosureId, disclosureId);
+        }
+        List<MailSendLog> logList = mailSendLogMapper.selectList(query);
         if (logList.isEmpty()) {
             return Result.fail("记录不存在");
         }

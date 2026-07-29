@@ -23,4 +23,6 @@ public class MailRequest {
     private Map<String, Object> templateData;
     /** 附件 URL 列表，来自 UploadFileController 返回的路径 */
     private List<String> attachmentUrls;
+    /** 关联的交底附件ID列表，与attachmentUrls按索引对应，可空 */
+    private List<Long> disclosureAttachmentIds;
 }

@@ -4,10 +4,6 @@
 
   <resultMap id="BaseResultMap" type="com.intellectual.model.entity.MailSendLog">
     <id column="id" jdbcType="BIGINT" property="id"/>
-    <result column="disclosure_id" jdbcType="BIGINT" property="disclosureId"/>
-    <result column="internal_no" jdbcType="VARCHAR" property="internalNo"/>
-    <result column="template_id" jdbcType="BIGINT" property="templateId"/>
-    <result column="template_code" jdbcType="VARCHAR" property="templateCode"/>
     <result column="from_email" jdbcType="VARCHAR" property="fromEmail"/>
     <result column="to_emails" jdbcType="VARCHAR" property="toEmails"/>
     <result column="cc_emails" jdbcType="VARCHAR" property="ccEmails"/>
@@ -16,6 +12,9 @@
     <result column="error_message" jdbcType="VARCHAR" property="errorMessage"/>
     <result column="sender_user_id" jdbcType="BIGINT" property="senderUserId"/>
     <result column="sender_name" jdbcType="VARCHAR" property="senderName"/>
+    <result column="business_type" jdbcType="VARCHAR" property="businessType"/>
+    <result column="business_ref" jdbcType="VARCHAR" property="businessRef"/>
+    <result column="business_action" jdbcType="VARCHAR" property="businessAction"/>
     <result column="sent_at" jdbcType="TIMESTAMP" property="sentAt"/>
     <result column="create_time" jdbcType="TIMESTAMP" property="createTime"/>
   </resultMap>
@@ -23,8 +22,9 @@
     <result column="content" jdbcType="LONGVARCHAR" property="content"/>
   </resultMap>
   <sql id="Base_Column_List">
-    id, disclosure_id, internal_no, template_id, template_code, from_email, to_emails, 
-	cc_emails, subject, send_status, error_message, sender_user_id, sender_name, sent_at, 
+    id, from_email, to_emails,
+	cc_emails, subject, send_status, error_message, sender_user_id, sender_name,
+    business_type, business_ref, business_action, sent_at,
 	create_time
   </sql>
   <sql id="Blob_Column_List">

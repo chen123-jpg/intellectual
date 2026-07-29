@@ -4,18 +4,24 @@
 
   <resultMap id="BaseResultMap" type="com.intellectual.model.entity.ApplicationPackage">
     <id column="id" jdbcType="BIGINT" property="id"/>
+    <result column="batch_id" jdbcType="BIGINT" property="batchId"/>
+    <result column="file_public_id" jdbcType="CHAR" property="filePublicId"/>
     <result column="disclosure_id" jdbcType="BIGINT" property="disclosureId"/>
     <result column="internal_no" jdbcType="VARCHAR" property="internalNo"/>
     <result column="package_type" jdbcType="VARCHAR" property="packageType"/>
+    <result column="document_code" jdbcType="VARCHAR" property="documentCode"/>
+    <result column="file_role" jdbcType="VARCHAR" property="fileRole"/>
     <result column="file_name" jdbcType="VARCHAR" property="fileName"/>
     <result column="file_ext" jdbcType="VARCHAR" property="fileExt"/>
     <result column="file_path" jdbcType="VARCHAR" property="filePath"/>
     <result column="file_url" jdbcType="VARCHAR" property="fileUrl"/>
     <result column="file_size" jdbcType="BIGINT" property="fileSize"/>
     <result column="content_type" jdbcType="VARCHAR" property="contentType"/>
+    <result column="sha256" jdbcType="CHAR" property="sha256"/>
     <result column="version_no" jdbcType="INTEGER" property="versionNo"/>
     <result column="is_current" jdbcType="TINYINT" property="isCurrent"/>
     <result column="current_type_key" jdbcType="VARCHAR" property="currentTypeKey"/>
+    <result column="current_slot_key" jdbcType="VARCHAR" property="currentSlotKey"/>
     <result column="upload_user_id" jdbcType="BIGINT" property="uploadUserId"/>
     <result column="upload_user_name" jdbcType="VARCHAR" property="uploadUserName"/>
     <result column="upload_time" jdbcType="TIMESTAMP" property="uploadTime"/>
@@ -28,8 +34,10 @@
     <result column="update_time" jdbcType="TIMESTAMP" property="updateTime"/>
   </resultMap>
   <sql id="Base_Column_List">
-    id, disclosure_id, internal_no, package_type, file_name, file_ext, file_path, 
-	file_url, file_size, content_type, version_no, is_current, current_type_key, upload_user_id, 
+    id, batch_id, file_public_id, disclosure_id, internal_no, package_type, document_code,
+    file_role, file_name, file_ext, file_path,
+	file_url, file_size, content_type, sha256, version_no, is_current, current_type_key,
+    current_slot_key, upload_user_id,
 	upload_user_name, upload_time, confirm_status, confirm_user_id, confirm_user_name, confirm_time, remark, 
 	create_time, update_time
   </sql>

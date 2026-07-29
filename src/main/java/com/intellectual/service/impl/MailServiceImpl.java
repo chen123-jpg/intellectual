@@ -42,6 +42,9 @@ import java.util.Properties;
 @Service
 public class MailServiceImpl extends ServiceImpl<MailMapper, Mail> implements MailService {
 
+    private record BusinessMailContext(String type, String ref, String action) {}
+    private final ThreadLocal<BusinessMailContext> businessMailContext = new ThreadLocal<>();
+
     @Autowired
     private MailSendAttachmentService mailSendAttachmentService;
 
@@ -91,6 +94,12 @@ public class MailServiceImpl extends ServiceImpl<MailMapper, Mail> implements Ma
         sendLog.setSendStatus(MailSendStatus.PENDING.getCode());
         sendLog.setSenderUserId(loginUser.getUserId());
         sendLog.setSenderName(loginUser.getLoginName());
+        BusinessMailContext businessContext = businessMailContext.get();
+        if (businessContext != null) {
+            sendLog.setBusinessType(businessContext.type());
+            sendLog.setBusinessRef(businessContext.ref());
+            sendLog.setBusinessAction(businessContext.action());
+        }
         sendLog.setCreateTime(new Date());
         mailSendLogService.save(sendLog);
 
@@ -174,6 +183,17 @@ public class MailServiceImpl extends ServiceImpl<MailMapper, Mail> implements Ma
             sendLog.setErrorMessage(e.getMessage());
             mailSendLogService.updateById(sendLog);
             return Result.fail(buildSendErrorMsg(e));
+        }
+    }
+
+    @Override
+    public Result sendBusinessMail(String to, String subject, String content,
+                                   String businessType, String businessRef, String businessAction) {
+        businessMailContext.set(new BusinessMailContext(businessType, businessRef, businessAction));
+        try {
+            return sendMail(to, subject, content, null, true, null);
+        } finally {
+            businessMailContext.remove();
         }
     }
 

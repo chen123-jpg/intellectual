@@ -8,6 +8,7 @@ import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.http.ContentDisposition;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -46,6 +47,9 @@ public class UploadFileServiceImpl {
 
         try {
             String originalFilename = file.getOriginalFilename();
+            if (originalFilename == null || originalFilename.isBlank()) {
+                originalFilename = "file";
+            }
             String extension = "";
             if (originalFilename != null && originalFilename.contains(".")) {
                 extension = originalFilename.substring(originalFilename.lastIndexOf("."));
@@ -65,6 +69,40 @@ public class UploadFileServiceImpl {
                 IOException e) {
             log.error("文件上传失败", e);
             return Result.fail("文件上传失败: " + e.getMessage());
+        }
+    }
+
+    /** 删除本服务上传的文件，用于数据库事务失败时补偿文件系统。 */
+    public boolean deleteByUrl(String fileUrl) {
+        if (fileUrl == null || fileUrl.isBlank()) {
+            return false;
+        }
+        String path = fileUrl;
+        int queryIndex = path.indexOf('?');
+        if (queryIndex >= 0) {
+            path = path.substring(0, queryIndex);
+        }
+        String prefix = "/files/";
+        if (!path.startsWith(prefix)) {
+            log.warn("拒绝删除非上传目录文件: {}", fileUrl);
+            return false;
+        }
+        String fileName = path.substring(prefix.length());
+        if (fileName.isBlank() || fileName.contains("/") || fileName.contains("\\")) {
+            log.warn("拒绝删除非法文件路径: {}", fileUrl);
+            return false;
+        }
+
+        Path targetPath = uploadPath.resolve(fileName).normalize();
+        if (!targetPath.startsWith(uploadPath)) {
+            log.warn("拒绝删除上传目录外文件: {}", targetPath);
+            return false;
+        }
+        try {
+            return Files.deleteIfExists(targetPath);
+        } catch (IOException e) {
+            log.error("回滚上传文件失败: {}", targetPath, e);
+            return false;
         }
     }
 
@@ -89,14 +127,14 @@ public class UploadFileServiceImpl {
             String dispositionFilename = (originalName != null && !originalName.isEmpty())
                     ? originalName
                     : resource.getFilename();
-            // 支持中文等特殊字符（RFC 5987）
-            String encodedDisposition = URLEncoder.encode(dispositionFilename, StandardCharsets.UTF_8)
-                    .replaceAll("\\+", "%20");
+            String contentDisposition = ContentDisposition.inline()
+                    .filename(dispositionFilename, StandardCharsets.UTF_8)
+                    .build()
+                    .toString();
 
             return ResponseEntity.ok()
                     .contentType(MediaType.parseMediaType(contentType))
-                    .header(HttpHeaders.CONTENT_DISPOSITION,
-                            "inline; filename=\"" + dispositionFilename + "\"; filename*=UTF-8''" + encodedDisposition)
+                    .header(HttpHeaders.CONTENT_DISPOSITION, contentDisposition)
                     .body(resource);
         } catch (IOException e) {
             return ResponseEntity.internalServerError().build();

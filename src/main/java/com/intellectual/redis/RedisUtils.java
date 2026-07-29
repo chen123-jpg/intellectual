@@ -3,10 +3,12 @@ package com.intellectual.redis;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.stereotype.Component;
 import org.springframework.util.CollectionUtils;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -15,6 +17,12 @@ import java.util.concurrent.TimeUnit;
 @Slf4j
 @Component
 public class RedisUtils {
+
+    private static final DefaultRedisScript<Object> GET_AND_DELETE_SCRIPT = new DefaultRedisScript<>(
+            "local value = redis.call('GET', KEYS[1]); "
+                    + "if value then redis.call('DEL', KEYS[1]); end; "
+                    + "return value",
+            Object.class);
 
     @Resource
     private RedisTemplate<String, Object> redisTemplate;
@@ -85,6 +93,20 @@ public class RedisUtils {
      */
     public Object get(String key) {
         return key == null ? null : redisTemplate.opsForValue().get(key);
+    }
+
+    /** 原子读取并删除，适用于一次性凭证，避免并发请求重复消费。 */
+    public Object getAndDelete(String key) {
+        if (key == null) {
+            return null;
+        }
+        try {
+            // Redis 3.2 does not support GETDEL. Lua keeps the ticket single-use and atomic.
+            return redisTemplate.execute(GET_AND_DELETE_SCRIPT, Collections.singletonList(key));
+        } catch (Exception e) {
+            log.error("Redis一次性读取失败", e);
+            return null;
+        }
     }
 
     /**

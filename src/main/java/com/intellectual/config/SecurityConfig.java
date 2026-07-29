@@ -58,7 +58,8 @@ public class SecurityConfig {
                 .requestMatchers(
                     "/api/acount/checkCode",
                     "/api/acount/register",
-                    "/api/acount/login"
+                    "/api/acount/login",
+                    "/api/acount/getSmsCode"
                 ).permitAll()
                 .requestMatchers(HttpMethod.OPTIONS).permitAll()
                 .anyRequest().authenticated()

@@ -27,6 +27,12 @@ public class ApplicationPackage implements Serializable {
     @TableId(value = "id", type = IdType.AUTO)
     private Long id;
 
+    /** 申请包批次内部ID */
+    private Long batchId;
+
+    /** 对外文件令牌 */
+    private String filePublicId;
+
     /**
      * 交底ID
      */
@@ -41,6 +47,12 @@ public class ApplicationPackage implements Serializable {
      * XML_PACKAGE / FIVE_BOOKS_WORD
      */
     private String packageType;
+
+    /** XML/REQUEST/DESCRIPTION/CLAIMS/ABSTRACT/ABSTRACT_DRAWING */
+    private String documentCode;
+
+    /** PACKAGE_DOCUMENT / CNIPA_RECEIPT */
+    private String fileRole;
 
     /**
      * 原始文件名
@@ -72,6 +84,9 @@ public class ApplicationPackage implements Serializable {
      */
     private String contentType;
 
+    /** 文件内容SHA-256 */
+    private String sha256;
+
     /**
      * 版本号，覆盖上传+1
      */
@@ -87,6 +102,10 @@ public class ApplicationPackage implements Serializable {
      */
     @TableField(insertStrategy = FieldStrategy.NEVER, updateStrategy = FieldStrategy.NEVER)
     private String currentTypeKey;
+
+    /** 当前槽位唯一键（MySQL生成列） */
+    @TableField(insertStrategy = FieldStrategy.NEVER, updateStrategy = FieldStrategy.NEVER)
+    private String currentSlotKey;
 
     /**
      * 上传人ID(主办)

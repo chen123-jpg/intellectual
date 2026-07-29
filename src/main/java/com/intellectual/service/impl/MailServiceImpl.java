@@ -215,27 +215,38 @@ public class MailServiceImpl extends ServiceImpl<MailMapper, Mail> implements Ma
             return Result.fail("未填写授权码，请在个人中心填写后重试");
         }
 
-        // 1. 查找模板
-        MailTemplate template = mailTemplateService.getOne(
-                new LambdaQueryWrapper<MailTemplate>()
-                        .eq(MailTemplate::getTemplateCode, request.getTemplateCode())
-                        .eq(MailTemplate::getEnabled, 1)
-        );
-        if (template == null) {
-            return Result.fail("模板不存在或未启用");
+        // 1. 渲染主题和正文
+        String subject;
+        String content;
+        if (request.getTemplateCode() != null && !request.getTemplateCode().isBlank()) {
+            MailTemplate template = mailTemplateService.getOne(
+                    new LambdaQueryWrapper<MailTemplate>()
+                            .eq(MailTemplate::getTemplateCode, request.getTemplateCode())
+                            .eq(MailTemplate::getEnabled, 1)
+            );
+            if (template == null) {
+                return Result.fail("模板不存在或未启用");
+            }
+            Context context = new Context();
+            if (request.getTemplateData() != null) {
+                context.setVariables(request.getTemplateData());
+            }
+            subject = request.getSubject() != null && !request.getSubject().isBlank()
+                    ? request.getSubject()
+                    : templateEngine.process(template.getSubject(), context);
+            content = request.getText() != null && !request.getText().isBlank()
+                    ? request.getText()
+                    : templateEngine.process(template.getContent(), context);
+        } else {
+            subject = request.getSubject();
+            content = request.getText();
+            if (subject == null || subject.isBlank()) {
+                return Result.fail("主题不能为空");
+            }
+            if (content == null || content.isBlank()) {
+                return Result.fail("正文不能为空");
+            }
         }
-
-        // 2. 渲染模板
-        Context context = new Context();
-        if (request.getTemplateData() != null) {
-            context.setVariables(request.getTemplateData());
-        }
-        String subject = request.getSubject() != null && !request.getSubject().isBlank()
-                ? request.getSubject()
-                : templateEngine.process(template.getSubject(), context);
-        String content = request.getText() != null && !request.getText().isBlank()
-                ? request.getText()
-                : templateEngine.process(template.getContent(), context);
 
         log.info("sendMailWithTemplate 请求参数: disclosureId={}, to={}, templateCode={}, attachmentUrls={}, disclosureAttachmentIds={}",
                 request.getDisclosureId(), request.getTo(), request.getTemplateCode(), request.getAttachmentUrls(), request.getDisclosureAttachmentIds());

@@ -16,4 +16,7 @@ public interface MailService extends IService<Mail> {
     Result sendMail(String to, String subject, String content, String cc, boolean isHtml, MultipartFile files);
 
     Result sendMailWithTemplate(MailRequest request);
+
+    Result sendBusinessMail(String to, String subject, String content,
+                            String businessType, String businessRef, String businessAction);
 }

@@ -70,6 +70,15 @@ public class MailSendLog implements Serializable {
      */
     private String senderName;
 
+    /** 业务类型，例如 APPLICATION_PACKAGE */
+    private String businessType;
+
+    /** 业务公开标识，不保存内部自增ID */
+    private String businessRef;
+
+    /** SEND/REJECT/APPROVE/UNLOCK/SUBMIT */
+    private String businessAction;
+
     /**
      * 实际发送时间
      */

@@ -2,18 +2,30 @@ package com.intellectual.controller;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.intellectual.annotation.RequirePermission;
+import com.intellectual.exception.BusinessException;
+import com.intellectual.model.dto.PatentDisclosureDTO;
 import com.intellectual.model.dto.Result;
 import com.intellectual.model.entity.*;
+import com.intellectual.security.LoginUser;
 import com.intellectual.service.*;
 import com.intellectual.service.impl.UploadFileServiceImpl;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.BeanUtils;
+import org.springframework.http.MediaType;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
+import static com.intellectual.model.constants.TtableConstant.*;
 
 /**
  * T表（专利交底信息表）控制器
@@ -24,6 +36,8 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/ttable")
 public class TtableController {
+
+
 
     @Autowired
     private PatentDisclosureService patentDisclosureService;
@@ -43,13 +57,6 @@ public class TtableController {
     @Autowired
     private UploadFileServiceImpl uploadFileService;
 
-    @Autowired
-    private ApplicationPackageService applicationPackageService;
-
-    // ═══════════════════════════════════════════════
-    // 交底主数据 CRUD
-    // ═══════════════════════════════════════════════
-
     /** 分页列表 */
     @RequirePermission("patent:disclosure:list")
     @GetMapping("/list")
@@ -67,6 +74,7 @@ public class TtableController {
                 .eq(internalNo != null, PatentDisclosure::getInternalNo, internalNo)
                 .like(applicant != null, PatentDisclosure::getApplicant, applicant)
                 .orderByDesc(PatentDisclosure::getCreateTime);
+        applyDisclosureDataScope(wrapper);
         return pageResult(patentDisclosureService.list(wrapper), pageNum, pageSize);
     }
 
@@ -92,6 +100,7 @@ public class TtableController {
                     .eq(query.getSyncedToPatent() != null, PatentDisclosure::getSyncedToPatent, query.getSyncedToPatent());
         }
         wrapper.orderByDesc(PatentDisclosure::getCreateTime);
+        applyDisclosureDataScope(wrapper);
         return pageResult(patentDisclosureService.list(wrapper), pageNum, pageSize);
     }
 
@@ -99,26 +108,28 @@ public class TtableController {
     @RequirePermission("patent:disclosure:list")
     @GetMapping("/all")
     public Result all() {
-        return Result.success(patentDisclosureService.list(
-                new LambdaQueryWrapper<PatentDisclosure>().orderByDesc(PatentDisclosure::getCreateTime)));
+        LambdaQueryWrapper<PatentDisclosure> wrapper =
+                new LambdaQueryWrapper<PatentDisclosure>().orderByDesc(PatentDisclosure::getCreateTime);
+        applyDisclosureDataScope(wrapper);
+        return Result.success(patentDisclosureService.list(wrapper));
     }
 
     /** 详情 */
     @RequirePermission("patent:disclosure:query")
     @GetMapping("/{id}")
     public Result getById(@PathVariable Long id) {
-        PatentDisclosure disclosure = patentDisclosureService.getById(id);
+        PatentDisclosure disclosure = getVisibleDisclosure(id);
         if (disclosure == null) {
             return Result.fail("交底记录不存在");
         }
         return Result.success(disclosure);
     }
 
-    /** 详情（含关联附件、状态日志、费用、开票、申请包） */
+    /** 详情（含关联附件、状态日志、费用和开票）。申请包通过独立工作流接口查询。 */
     @RequirePermission("patent:disclosure:query")
     @GetMapping("/{id}/detail")
     public Result detail(@PathVariable Long id) {
-        PatentDisclosure disclosure = patentDisclosureService.getById(id);
+        PatentDisclosure disclosure = getVisibleDisclosure(id);
         if (disclosure == null) {
             return Result.fail("交底记录不存在");
         }
@@ -139,36 +150,52 @@ public class TtableController {
                 new LambdaQueryWrapper<Invoice>()
                         .eq(Invoice::getDisclosureId, id)
                         .orderByDesc(Invoice::getCreateTime));
-        List<ApplicationPackage> packages = applicationPackageService.list(
-                new LambdaQueryWrapper<ApplicationPackage>()
-                        .eq(ApplicationPackage::getDisclosureId, id)
-                        .orderByDesc(ApplicationPackage::getCreateTime));
         Map<String, Object> result = new HashMap<>();
         result.put("disclosure", disclosure);
         result.put("attachments", attachments);
         result.put("statusLogs", statusLogs);
         result.put("fees", fees);
         result.put("invoices", invoices);
-        result.put("packages", packages);
         return Result.success(result);
     }
 
     /** 新增 */
     @RequirePermission("patent:disclosure:add")
-    @PostMapping
-    public Result add(@RequestBody PatentDisclosure disclosure) {
-        patentDisclosureService.save(disclosure);
-        return Result.success(disclosure, "新增成功");
+    @PostMapping(value = {"/add", "/with-attachments"}, consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public Result add(
+            @Valid @RequestPart("request") PatentDisclosureDTO request,
+            @RequestPart("disclosureDocument") List<MultipartFile> disclosureDocuments,
+            @RequestPart(value = "otherAttachments", required = false) List<MultipartFile> otherAttachments,
+            @RequestParam(value = "sourceId", required = false) Long sourceId) {
+        if (sourceId != null && getVisibleDisclosure(sourceId) == null) {
+            return Result.fail("复制来源交底记录不存在");
+        }
+
+        LoginUser loginUser = getLoginUser();
+        PatentDisclosure disclosure = patentDisclosureService.createWithAttachments(
+                request,
+                disclosureDocuments,
+                otherAttachments,
+                sourceId,
+                loginUser != null ? loginUser.getUserId() : null,
+                loginUser != null ? loginUser.getLoginName() : null);
+        return Result.success(disclosure, "交底信息及附件创建成功");
     }
 
     /** 修改 */
     @RequirePermission("patent:disclosure:edit")
     @PutMapping
-    public Result update(@RequestBody PatentDisclosure disclosure) {
-        if (disclosure.getId() == null) {
+    public Result update(@Valid @RequestBody PatentDisclosureDTO request) {
+        if (request.getId() == null) {
             return Result.fail("ID不能为空");
         }
-        patentDisclosureService.updateById(disclosure);
+        if (getVisibleDisclosure(request.getId()) == null) {
+            return Result.fail("交底记录不存在");
+        }
+        PatentDisclosure disclosure = toDisclosure(request, false);
+        if (!patentDisclosureService.updateWithRelatedRecords(disclosure)) {
+            return Result.fail("交底记录不存在");
+        }
         return Result.success(disclosure, "修改成功");
     }
 
@@ -189,7 +216,8 @@ public class TtableController {
     }
 
     /** 复制交底 */
-    @RequirePermission("patent:disclosure:add")
+    @RequirePermission(value = {"patent:disclosure:copy", "patent:disclosure:add"},
+            logical = RequirePermission.Logical.OR)
     @PostMapping("/copy")
     public Result copy(@RequestBody Map<String, Object> body) {
         Long sourceId = body.get("sourceId") != null
@@ -197,31 +225,27 @@ public class TtableController {
         if (sourceId == null) {
             return Result.fail("sourceId 不能为空");
         }
-        PatentDisclosure source = patentDisclosureService.getById(sourceId);
+        PatentDisclosure source = getVisibleDisclosure(sourceId);
         if (source == null) {
             return Result.fail("源交底记录不存在");
         }
-        source.setId(null);
-        source.setTempNo(null);
-        source.setInternalNo(null);
-        source.setPatentStatus(null);
-        source.setCopyFromId(sourceId);
-        source.setCreateTime(null);
-        source.setUpdateTime(null);
-        source.setSyncedToPatent(0);
-        source.setPatentApplicationId(null);
-        patentDisclosureService.save(source);
-        return Result.success(source, "复制成功");
+        PatentDisclosureDTO copy = new PatentDisclosureDTO();
+        BeanUtils.copyProperties(source, copy);
+        copy.setId(null);
+        copy.setInternalNo(null);
+        copy.setPatentStatus(null);
+        return Result.success(copy, "已读取历史交底，请补充附件后保存");
     }
 
     /** 按主办人用户ID查询 */
     @RequirePermission("patent:disclosure:list")
     @GetMapping("/by-sponsor/{sponsorUserId}")
     public Result bySponsor(@PathVariable Long sponsorUserId) {
-        List<PatentDisclosure> list = patentDisclosureService.list(
-                new LambdaQueryWrapper<PatentDisclosure>()
-                        .eq(PatentDisclosure::getSponsorUserId, sponsorUserId)
-                        .orderByDesc(PatentDisclosure::getCreateTime));
+        LambdaQueryWrapper<PatentDisclosure> wrapper = new LambdaQueryWrapper<PatentDisclosure>()
+                .eq(PatentDisclosure::getSponsorUserId, sponsorUserId)
+                .orderByDesc(PatentDisclosure::getCreateTime);
+        applyDisclosureDataScope(wrapper);
+        List<PatentDisclosure> list = patentDisclosureService.list(wrapper);
         return Result.success(list);
     }
 
@@ -229,7 +253,7 @@ public class TtableController {
     @RequirePermission("patent:disclosure:edit")
     @PostMapping("/{id}/status")
     public Result changeStatus(@PathVariable Long id, @RequestBody Map<String, Object> body) {
-        PatentDisclosure disclosure = patentDisclosureService.getById(id);
+        PatentDisclosure disclosure = getVisibleDisclosure(id);
         if (disclosure == null) {
             return Result.fail("交底记录不存在");
         }
@@ -238,6 +262,10 @@ public class TtableController {
         if (toStatus == null || toStatus.isBlank()) {
             return Result.fail("toStatus 不能为空");
         }
+        if (DISCLOSURE_STATUS_PENDING_REPORT.equals(toStatus)
+                || DISCLOSURE_STATUS_REPORTED.equals(toStatus)) {
+            return Result.fail("定稿待报和已申报只能由申请包工作流变更");
+        }
         disclosure.setPatentStatus(toStatus);
         patentDisclosureService.updateById(disclosure);
 
@@ -245,13 +273,10 @@ public class TtableController {
         log.setDisclosureId(id);
         log.setFromStatus(fromStatus);
         log.setToStatus(toStatus);
-        Object opUserId = body.get("operatorUserId");
-        if (opUserId != null) {
-            log.setOperatorUserId(((Number) opUserId).longValue());
-        }
-        Object opName = body.get("operatorName");
-        if (opName != null) {
-            log.setOperatorName(opName.toString());
+        LoginUser loginUser = getLoginUser();
+        if (loginUser != null) {
+            log.setOperatorUserId(loginUser.getUserId());
+            log.setOperatorName(loginUser.getLoginName());
         }
         Object remark = body.get("remark");
         if (remark != null) {
@@ -266,10 +291,12 @@ public class TtableController {
     // ═══════════════════════════════════════════════
 
     /** 交底附件列表 */
-    @RequirePermission("patent:disclosure:query")
+    @RequirePermission(value = {"patent:disclosure:query", "patent:disclosure:attachment:upload",
+            "patent:disclosure:add"},
+            logical = RequirePermission.Logical.OR)
     @GetMapping("/{id}/attachments")
     public Result listAttachments(@PathVariable Long id) {
-        PatentDisclosure disclosure = patentDisclosureService.getById(id);
+        PatentDisclosure disclosure = getVisibleDisclosure(id);
         if (disclosure == null) {
             return Result.fail("交底记录不存在");
         }
@@ -282,118 +309,77 @@ public class TtableController {
     }
 
     /** 上传附件 */
-    @RequirePermission("patent:disclosure:add")
+    @RequirePermission(value = {"patent:disclosure:attachment:upload", "patent:disclosure:add"},
+            logical = RequirePermission.Logical.OR)
     @PostMapping("/{id}/attachments")
     public Result uploadAttachment(@PathVariable Long id,
                                    @RequestParam("file") MultipartFile file,
-                                   @RequestParam(value = "bizType", defaultValue = "DISCLOSURE_OTHER") String bizType,
-                                   @RequestParam(required = false) Long uploadUserId,
-                                   @RequestParam(required = false) String uploadUserName) {
-        PatentDisclosure disclosure = patentDisclosureService.getById(id);
+                                   @RequestParam(value = "bizType", defaultValue = "DISCLOSURE_OTHER") String bizType) {
+        PatentDisclosure disclosure = getVisibleDisclosure(id);
         if (disclosure == null) {
             return Result.fail("交底记录不存在");
         }
-        Result<String> uploadResult = uploadFileService.upload(file);
-        if (uploadResult.getCode() != 200) {
-            return Result.fail(uploadResult.getMessage());
+        if (!DISCLOSURE_ATTACHMENT_TYPES.contains(bizType)) {
+            return Result.fail("不支持的附件业务类型");
         }
-        String fileUrl = uploadResult.getData();
-        String originalFilename = file.getOriginalFilename();
-        String ext = "";
-        if (originalFilename != null && originalFilename.contains(".")) {
-            ext = originalFilename.substring(originalFilename.lastIndexOf(".") + 1);
+        if (DISCLOSURE_DOC.equals(bizType)) {
+            if (!isWordDocument(file)) {
+                return Result.fail("交底书只能上传 .doc 或 .docx 格式的 Word 文档");
+            }
+            long documentCount = disclosureAttachmentService.count(
+                    new LambdaQueryWrapper<DisclosureAttachment>()
+                            .eq(DisclosureAttachment::getDisclosureId, id)
+                            .eq(DisclosureAttachment::getBizType, DISCLOSURE_DOC)
+                            .eq(DisclosureAttachment::getDeleted, 0));
+            if (documentCount > 0) {
+                return Result.fail("交底书只能保留一份，请先删除原交底书");
+            }
         }
-        DisclosureAttachment attachment = new DisclosureAttachment();
+
+        DisclosureAttachment attachment = storeAttachment(file, bizType);
         attachment.setDisclosureId(id);
         attachment.setInternalNo(disclosure.getInternalNo());
-        attachment.setBizType(bizType);
-        attachment.setFileName(originalFilename);
-        attachment.setFileExt(ext);
-        attachment.setFilePath(fileUrl);
-        attachment.setFileUrl(fileUrl);
-        attachment.setFileSize(file.getSize());
-        attachment.setContentType(file.getContentType());
-        attachment.setIsRequired("DISCLOSURE_DOC".equals(bizType) ? 1 : 0);
-        attachment.setSortNo(0);
-        attachment.setUploadUserId(uploadUserId);
-        attachment.setUploadUserName(uploadUserName);
-        attachment.setDeleted(0);
         disclosureAttachmentService.save(attachment);
         return Result.success(attachment, "附件上传成功");
     }
 
+    /** 更换交底书：新文件保存成功后再逻辑删除旧交底书。 */
+    @RequirePermission(value = {"patent:disclosure:attachment:upload", "patent:disclosure:add"},
+            logical = RequirePermission.Logical.OR)
+    @PutMapping(value = "/{id}/attachments/disclosure-document",
+            consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public Result replaceDisclosureDocument(@PathVariable Long id,
+                                            @RequestPart("file") MultipartFile file) {
+        PatentDisclosure disclosure = getVisibleDisclosure(id);
+        if (disclosure == null) {
+            return Result.fail("交底记录不存在");
+        }
+        LoginUser loginUser = getLoginUser();
+        DisclosureAttachment replacement = patentDisclosureService.replaceDisclosureDocument(
+                id,
+                disclosure.getInternalNo(),
+                file,
+                loginUser != null ? loginUser.getUserId() : null,
+                loginUser != null ? loginUser.getLoginName() : null);
+        return Result.success(replacement, "交底书更换成功");
+    }
+
     /** 删除附件（逻辑删除） */
-    @RequirePermission("patent:disclosure:delete")
+    @RequirePermission(value = {"patent:disclosure:delete", "patent:disclosure:attachment:upload",
+            "patent:disclosure:add"},
+            logical = RequirePermission.Logical.OR)
     @DeleteMapping("/attachments/{attachmentId}")
     public Result deleteAttachment(@PathVariable Long attachmentId) {
         DisclosureAttachment attachment = disclosureAttachmentService.getById(attachmentId);
         if (attachment == null) {
             return Result.fail("附件不存在");
         }
+        if (getVisibleDisclosure(attachment.getDisclosureId()) == null) {
+            return Result.fail("附件不存在");
+        }
         attachment.setDeleted(1);
         disclosureAttachmentService.updateById(attachment);
         return Result.successMsg("附件删除成功");
-    }
-
-    // ═══════════════════════════════════════════════
-    // 申请包
-    // ═══════════════════════════════════════════════
-
-    /** 交底申请包列表 */
-    @RequirePermission("patent:disclosure:query")
-    @GetMapping("/{id}/packages")
-    public Result listPackages(@PathVariable Long id) {
-        PatentDisclosure disclosure = patentDisclosureService.getById(id);
-        if (disclosure == null) {
-            return Result.fail("交底记录不存在");
-        }
-        List<ApplicationPackage> packages = applicationPackageService.list(
-                new LambdaQueryWrapper<ApplicationPackage>()
-                        .eq(ApplicationPackage::getDisclosureId, id)
-                        .orderByDesc(ApplicationPackage::getCreateTime));
-        return Result.success(packages);
-    }
-
-    /** 上传申请包 */
-    @RequirePermission("patent:disclosure:add")
-    @PostMapping("/{id}/packages")
-    public Result uploadPackage(@PathVariable Long id,
-                                @RequestParam("file") MultipartFile file,
-                                @RequestParam("packageType") String packageType,
-                                @RequestParam(required = false) Long uploadUserId,
-                                @RequestParam(required = false) String uploadUserName) {
-        PatentDisclosure disclosure = patentDisclosureService.getById(id);
-        if (disclosure == null) {
-            return Result.fail("交底记录不存在");
-        }
-        Result<String> uploadResult = uploadFileService.upload(file);
-        if (uploadResult.getCode() != 200) {
-            return Result.fail(uploadResult.getMessage());
-        }
-        String fileUrl = uploadResult.getData();
-        String originalFilename = file.getOriginalFilename();
-        String ext = "";
-        if (originalFilename != null && originalFilename.contains(".")) {
-            ext = originalFilename.substring(originalFilename.lastIndexOf(".") + 1);
-        }
-        ApplicationPackage pkg = new ApplicationPackage();
-        pkg.setDisclosureId(id);
-        pkg.setInternalNo(disclosure.getInternalNo());
-        pkg.setPackageType(packageType);
-        pkg.setFileName(originalFilename);
-        pkg.setFileExt(ext);
-        pkg.setFilePath(fileUrl);
-        pkg.setFileUrl(fileUrl);
-        pkg.setFileSize(file.getSize());
-        pkg.setContentType(file.getContentType());
-        pkg.setVersionNo(1);
-        pkg.setIsCurrent(1);
-        pkg.setUploadUserId(uploadUserId);
-        pkg.setUploadUserName(uploadUserName);
-        pkg.setUploadTime(new Date());
-        pkg.setConfirmStatus("UNCONFIRMED");
-        applicationPackageService.save(pkg);
-        return Result.success(pkg, "申请包上传成功");
     }
 
     // ═══════════════════════════════════════════════
@@ -404,7 +390,7 @@ public class TtableController {
     @RequirePermission("patent:disclosure:query")
     @GetMapping("/{id}/status-logs")
     public Result statusLogs(@PathVariable Long id) {
-        PatentDisclosure disclosure = patentDisclosureService.getById(id);
+        PatentDisclosure disclosure = getVisibleDisclosure(id);
         if (disclosure == null) {
             return Result.fail("交底记录不存在");
         }
@@ -423,7 +409,7 @@ public class TtableController {
     @RequirePermission("patent:disclosure:query")
     @GetMapping("/{id}/fees")
     public Result fees(@PathVariable Long id) {
-        PatentDisclosure disclosure = patentDisclosureService.getById(id);
+        PatentDisclosure disclosure = getVisibleDisclosure(id);
         if (disclosure == null) {
             return Result.fail("交底记录不存在");
         }
@@ -442,7 +428,7 @@ public class TtableController {
     @RequirePermission("patent:disclosure:query")
     @GetMapping("/{id}/invoices")
     public Result invoices(@PathVariable Long id) {
-        PatentDisclosure disclosure = patentDisclosureService.getById(id);
+        PatentDisclosure disclosure = getVisibleDisclosure(id);
         if (disclosure == null) {
             return Result.fail("交底记录不存在");
         }
@@ -457,16 +443,124 @@ public class TtableController {
     // 分页工具方法
     // ═══════════════════════════════════════════════
 
-    private <T> Result pageResult(List<T> all, int pageNum, int pageSize) {
+    private Result pageResult(List<PatentDisclosure> all, int pageNum, int pageSize) {
         int total = all.size();
         int from = (pageNum - 1) * pageSize;
         int to = Math.min(from + pageSize, total);
-        List<T> page = from < total ? all.subList(from, to) : List.of();
+        List<PatentDisclosure> page = from < total ? all.subList(from, to) : List.of();
+
+        Map<Long, List<DisclosureAttachment>> attachmentsByDisclosureId = new HashMap<>();
+        if (!page.isEmpty()) {
+            List<Long> disclosureIds = page.stream()
+                    .map(PatentDisclosure::getId)
+                    .filter(Objects::nonNull)
+                    .toList();
+            if (!disclosureIds.isEmpty()) {
+                List<DisclosureAttachment> attachments = disclosureAttachmentService.list(
+                        new LambdaQueryWrapper<DisclosureAttachment>()
+                                .in(DisclosureAttachment::getDisclosureId, disclosureIds)
+                                .eq(DisclosureAttachment::getDeleted, 0)
+                                .orderByAsc(DisclosureAttachment::getDisclosureId)
+                                .orderByAsc(DisclosureAttachment::getSortNo));
+                for (DisclosureAttachment attachment : attachments) {
+                    attachmentsByDisclosureId
+                            .computeIfAbsent(attachment.getDisclosureId(), key -> new ArrayList<>())
+                            .add(attachment);
+                }
+            }
+        }
+
         Map<String, Object> result = new HashMap<>();
         result.put("records", page);
+        result.put("attachmentsByDisclosureId", attachmentsByDisclosureId);
         result.put("total", total);
         result.put("pageNum", pageNum);
         result.put("pageSize", pageSize);
         return Result.success(result);
+    }
+
+    private PatentDisclosure toDisclosure(PatentDisclosureDTO request, boolean ignoreId) {
+        PatentDisclosure disclosure = new PatentDisclosure();
+        if (ignoreId) {
+            BeanUtils.copyProperties(request, disclosure, "id");
+        } else {
+            BeanUtils.copyProperties(request, disclosure);
+        }
+        return disclosure;
+    }
+
+    private DisclosureAttachment storeAttachment(MultipartFile file, String bizType) {
+        Result<String> uploadResult = uploadFileService.upload(file);
+        if (uploadResult.getCode() != 200) {
+            throw new BusinessException(uploadResult.getMessage());
+        }
+
+        LoginUser loginUser = getLoginUser();
+        DisclosureAttachment attachment = new DisclosureAttachment();
+        attachment.setBizType(bizType);
+        attachment.setFileName(file.getOriginalFilename());
+        attachment.setFileExt(getFileExtension(file));
+        attachment.setFilePath(uploadResult.getData());
+        attachment.setFileUrl(uploadResult.getData());
+        attachment.setFileSize(file.getSize());
+        attachment.setContentType(file.getContentType());
+        attachment.setIsRequired(DISCLOSURE_DOC.equals(bizType) ? 1 : 0);
+        attachment.setSortNo(0);
+        if (loginUser != null) {
+            attachment.setUploadUserId(loginUser.getUserId());
+            attachment.setUploadUserName(loginUser.getLoginName());
+        }
+        attachment.setDeleted(0);
+        return attachment;
+    }
+
+    private boolean isWordDocument(MultipartFile file) {
+        return file != null && !file.isEmpty() && WORD_EXTENSIONS.contains(getFileExtension(file));
+    }
+
+    private String getFileExtension(MultipartFile file) {
+        String filename = file != null ? file.getOriginalFilename() : null;
+        if (filename == null) {
+            return "";
+        }
+        int dotIndex = filename.lastIndexOf('.');
+        if (dotIndex < 0 || dotIndex == filename.length() - 1) {
+            return "";
+        }
+        return filename.substring(dotIndex + 1).toLowerCase(Locale.ROOT);
+    }
+
+    /** 立项人员只能查询自己创建的交底；管理员保持全量数据权限。 */
+    private void applyDisclosureDataScope(LambdaQueryWrapper<PatentDisclosure> wrapper) {
+        LoginUser loginUser = getLoginUser();
+        if (loginUser != null && hasRole(loginUser, ROLE_PROJECT_INITIATOR)
+                && !hasRole(loginUser, ROLE_ADMIN)) {
+            wrapper.eq(PatentDisclosure::getEntryUserId, loginUser.getUserId());
+        }
+    }
+
+    /** 对单条数据应用与列表一致的数据范围，防止后续误配 query 权限造成越权。 */
+    private PatentDisclosure getVisibleDisclosure(Long id) {
+        PatentDisclosure disclosure = patentDisclosureService.getById(id);
+        LoginUser loginUser = getLoginUser();
+        if (disclosure != null && loginUser != null
+                && hasRole(loginUser, ROLE_PROJECT_INITIATOR)
+                && !hasRole(loginUser, ROLE_ADMIN)
+                && !Objects.equals(disclosure.getEntryUserId(), loginUser.getUserId())) {
+            return null;
+        }
+        return disclosure;
+    }
+
+    private boolean hasRole(LoginUser loginUser, String role) {
+        return loginUser.getRoles() != null && loginUser.getRoles().contains(role);
+    }
+
+    private LoginUser getLoginUser() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication != null && authentication.getPrincipal() instanceof LoginUser) {
+            return (LoginUser) authentication.getPrincipal();
+        }
+        return null;
     }
 }

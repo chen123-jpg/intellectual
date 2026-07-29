@@ -1,13 +1,13 @@
 
 spring:
   profiles:
-    active: remote
+    active:
   application:
     name: intellectual
   datasource:
-    url: jdbc:mysql://localhost:2006/intellectual-property?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=Asia/Shanghai
-    username: ${DB_USER:chen}
-    password: ${DB_PASSWORD:Cc20060706.}
+    url: jdbc:mysql://localhost:3306/zhuanli?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=Asia/Shanghai
+    username: ${DB_USER:root}
+    password: ${DB_PASSWORD:xiaojiucheng1226}
     driver-class-name: com.mysql.cj.jdbc.Driver
 
   servlet:
@@ -50,10 +50,13 @@ server:
 app:
   upload:
     dir: uploads
+  preview:
+    gotenberg:
+      enabled: ${GOTENBERG_ENABLED:false}
+      base-url: ${GOTENBERG_BASE_URL:http://127.0.0.1:3000}
+      connect-timeout-seconds: ${GOTENBERG_CONNECT_TIMEOUT_SECONDS:3}
+      read-timeout-seconds: ${GOTENBERG_READ_TIMEOUT_SECONDS:70}
+      acquire-timeout-seconds: ${GOTENBERG_ACQUIRE_TIMEOUT_SECONDS:5}
+      max-concurrent: ${GOTENBERG_MAX_CONCURRENT:2}
 
-#springdoc:
-#  api-docs:
-#    enabled: true
-#    path: /v3/api-docs
-#  swagger-ui:
-#    enabled: true
+

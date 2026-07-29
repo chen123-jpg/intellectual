@@ -856,6 +856,8 @@ GET /api/ttable/list
 ```
 
 > 需权限：`patent:disclosure:list`
+>
+> 当登录用户角色包含 `projectInitiator` 且不包含 `admin` 时，只返回 `entryUserId` 为当前用户的数据；`search`、`all`、`by-sponsor` 遵循同一数据范围。
 
 **请求参数** (Query)
 
@@ -910,12 +912,25 @@ GET /api/ttable/list
         "updateTime": "2026-07-23T16:00:00"
       }
     ],
+    "attachmentsByDisclosureId": {
+      "1": [
+        {
+          "id": 101,
+          "disclosureId": 1,
+          "bizType": "DISCLOSURE_DOC",
+          "fileName": "技术交底书.docx",
+          "fileUrl": "/files/uuid.docx?name=..."
+        }
+      ]
+    },
     "total": 100,
     "pageNum": 1,
     "pageSize": 10
   }
 }
 ```
+
+`attachmentsByDisclosureId` 只包含当前页记录的未删除附件，以交底 ID 分组；`bizType` 为 `DISCLOSURE_DOC` 时表示交底书，为 `DISCLOSURE_OTHER` 时表示其他文件。列表页可直接使用该字段展示附件，无需逐行请求附件接口。高级搜索分页响应使用相同结构。
 
 ### 10.2 高级搜索
 
@@ -980,8 +995,7 @@ GET /api/ttable/{id}/detail
     "attachments": [ { "id": 1, "fileName": "交底书.docx", "bizType": "DISCLOSURE_DOC" } ],
     "statusLogs": [ { "id": 1, "fromStatus": "草稿", "toStatus": "定稿", "operatorName": "张三" } ],
     "fees": [ { "id": 1, "feeType": "官费", "feeAmount": 500.00, "paymentStatus": "PENDING" } ],
-    "invoices": [ { "id": 1, "invoiceType": "普票", "invoiceAmount": 500.00, "invoiceStatus": "ISSUED" } ],
-    "packages": [ { "id": 1, "packageType": "XML_PACKAGE", "fileName": "申请包.xml", "confirmStatus": "UNCONFIRMED" } ]
+    "invoices": [ { "id": 1, "invoiceType": "普票", "invoiceAmount": 500.00, "invoiceStatus": "ISSUED" } ]
   }
 }
 ```
@@ -989,12 +1003,24 @@ GET /api/ttable/{id}/detail
 ### 10.6 新增
 
 ```
-POST /api/ttable
+POST /api/ttable/add
 ```
 
 > 需权限：`patent:disclosure:add`
+> Content-Type: `multipart/form-data`
 
-**请求体** (JSON) — `PatentDisclosure` 对象
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| request | application/json | 是 | `PatentDisclosureDTO` JSON |
+| disclosureDocument | file | 是 | 必须且只能一份 `.doc`/`.docx` Word 交底书 |
+| otherAttachments | file[] | 否 | 其他附件，可上传一份或多份 |
+| sourceId | long | 否 | 复制的历史交底 ID，仅用于记录 `copyFromId` |
+
+`request` 仅允许提交 `PatentDisclosureDTO` 中定义的业务字段；其中的 `id` 会在新增时忽略，录入人使用当前认证用户。
+
+系统将主记录、附件元数据、缴费记录和开票记录放在同一数据库事务中写入。附件文件上传失败或数据库事务回滚时，会清理本次已上传的文件，避免孤儿文件。缴费和开票记录的初始状态均为 `PENDING`、来源均为 `DISCLOSURE_SYNC`。
+
+兼容地址 `POST /api/ttable/with-attachments` 与本接口行为一致。
 
 ### 10.7 修改
 
@@ -1004,7 +1030,10 @@ PUT /api/ttable
 
 > 需权限：`patent:disclosure:edit`
 
-**请求体** (JSON) — `PatentDisclosure` 对象，`id` 字段必填，否则返回 `"ID不能为空"`
+> `projectInitiator`（立项专员）拥有该权限，但后端仍按 `entryUserId` 校验数据范围，只允许编辑本人录入的交底；管理员可编辑全部可见交底。
+
+**请求体** (JSON) — `PatentDisclosureDTO` 对象，`id`、`disclosureName`、`patentType` 必填。
+请求体中的服务端维护字段会被忽略。
 
 ### 10.8 删除
 
@@ -1152,7 +1181,7 @@ GET /api/ttable/{id}/invoices
 POST /api/ttable/copy
 ```
 
-> 需权限：`patent:disclosure:add`
+> 需权限：`patent:disclosure:copy` 或 `patent:disclosure:add`
 
 **请求体** (JSON)
 
@@ -1164,7 +1193,7 @@ POST /api/ttable/copy
 |------|------|------|------|
 | sourceId | long | 是 | 源交底ID |
 
-**响应** — `data` 为新创建的 `PatentDisclosure` 对象。新交底的 `copyFromId` 会被设为 `sourceId`，`tempNo`/`internalNo`/`patentStatus`/`syncedToPatent` 等字段会重置。
+**响应** — `data` 为用于预填录入表单的 `PatentDisclosureDTO`，不会直接创建新记录。用户补充一份 Word 交底书及可选的其他附件后，再调用新增接口；新增接口的 `sourceId` 会写入主记录的 `copyFromId`。
 
 ### 10.15 按主办人查询
 
@@ -1189,8 +1218,6 @@ POST /api/ttable/{id}/status
 ```json
 {
   "toStatus": "定稿",
-  "operatorUserId": 1,
-  "operatorName": "张三",
   "remark": "已定稿，进入下一流程"
 }
 ```
@@ -1198,11 +1225,10 @@ POST /api/ttable/{id}/status
 | 字段 | 类型 | 必填 | 说明 |
 |------|------|------|------|
 | toStatus | string | 是 | 新状态 |
-| operatorUserId | long | 否 | 操作人ID |
-| operatorName | string | 否 | 操作人姓名 |
 | remark | string | 否 | 备注/原因 |
 
-> 系统自动记录旧状态 → 新状态的变更日志到 `disclosure_status_log` 表。
+> 操作人只能从当前 JWT 登录上下文产生，客户端不能指定。系统自动记录旧状态 → 新状态的变更日志。
+> `定稿待报` 和 `已申报` 是申请包工作流专属状态，调用本接口设置会被拒绝。
 
 ### 10.17 上传附件
 
@@ -1210,7 +1236,7 @@ POST /api/ttable/{id}/status
 POST /api/ttable/{id}/attachments
 ```
 
-> 需权限：`patent:disclosure:add`
+> 需权限：`patent:disclosure:attachment:upload` 或 `patent:disclosure:add`
 > Content-Type: `multipart/form-data`
 
 **请求参数** (FormData)
@@ -1219,10 +1245,25 @@ POST /api/ttable/{id}/attachments
 |------|------|------|--------|------|
 | file | file | 是 | — | 附件文件 |
 | bizType | string | 否 | DISCLOSURE_OTHER | DISCLOSURE_DOC 交底书 / DISCLOSURE_OTHER 其他 |
-| uploadUserId | long | 否 | — | 上传人ID |
-| uploadUserName | string | 否 | — | 上传人姓名 |
+
+> `DISCLOSURE_DOC` 只能是 `.doc`/`.docx`，且每条交底只能保留一份；上传人信息取自当前认证用户。
 
 **响应** — `data` 为新创建的 `DisclosureAttachment` 对象，包含文件访问 URL。
+
+### 10.17.1 更换交底书
+
+```
+PUT /api/ttable/{id}/attachments/disclosure-document
+```
+
+> 需权限：`patent:disclosure:attachment:upload` 或 `patent:disclosure:add`
+> Content-Type: `multipart/form-data`
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| file | file | 是 | 新的 `.doc`/`.docx` Word 交底书 |
+
+新交底书文件及元数据保存成功后，旧交底书元数据才会被逻辑删除；数据库失败时会回滚元数据并清理新上传文件。
 
 ### 10.18 删除附件（逻辑删除）
 
@@ -1230,41 +1271,13 @@ POST /api/ttable/{id}/attachments
 DELETE /api/ttable/attachments/{attachmentId}
 ```
 
-> 需权限：`patent:disclosure:delete`
+> 需权限：`patent:disclosure:delete`、`patent:disclosure:attachment:upload` 或 `patent:disclosure:add` 中任一权限
 
 > 将 `deleted` 字段置为 1，不会物理删除文件。
 
-### 10.19 交底申请包列表
+### 10.19 申请包接口迁移说明
 
-```
-GET /api/ttable/{id}/packages
-```
-
-> 需权限：`patent:disclosure:query`
-
-**响应** — `data` 为 `ApplicationPackage[]` 数组（按 `createTime` 降序）
-
-### 10.20 上传申请包
-
-```
-POST /api/ttable/{id}/packages
-```
-
-> 需权限：`patent:disclosure:add`
-> Content-Type: `multipart/form-data`
-
-**请求参数** (FormData)
-
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| file | file | 是 | 申请包文件（XML或WORD） |
-| packageType | string | 是 | XML_PACKAGE / FIVE_BOOKS_WORD |
-| uploadUserId | long | 否 | 上传人ID |
-| uploadUserName | string | 否 | 上传人姓名 |
-
-> 新增时 `confirmStatus` 默认为 `UNCONFIRMED`，`versionNo` 为 1，`isCurrent` 为 1。
-
-**响应** — `data` 为新创建的 `ApplicationPackage` 对象，包含文件访问 URL。
+旧的 `GET/POST /api/ttable/{id}/packages` 已移除。组包、版本查询与审核统一使用第十三章的申请包工作流接口。
 
 ---
 
@@ -1659,12 +1672,15 @@ DELETE /api/agent/applicant/batch
 
 ## 十三、申请包接口 `/api/application-package`
 
-> 对应数据表：`application_package`
+> 对应 `application_package_batch` 批次主表及文件版本、审核问题、操作日志表。
+> 对外只使用随机 `packageToken` / `fileToken`，不返回申请包或文件的数据库自增 ID、磁盘路径和永久文件 URL。
+
+状态机：`DRAFT → PENDING_RECEIVE → REVIEWING → APPROVED → SUBMITTED`；退回分支为 `REVIEWING → REJECTED → PENDING_RECEIVE`，管理员可将 `APPROVED` 解锁回 `REVIEWING`。
 
 ### 13.1 分页列表
 
 ```
-GET /api/application-package/list
+GET /api/application-package/batches
 ```
 
 > 需权限：`patent:applicationPackage:list`
@@ -1675,127 +1691,135 @@ GET /api/application-package/list
 |------|------|------|--------|------|
 | pageNum | int | 否 | 1 | 页码 |
 | pageSize | int | 否 | 10 | 每页条数 |
-| disclosureId | long | 否 | — | 交底ID（精确） |
-| packageType | string | 否 | — | 包类型：XML_PACKAGE / FIVE_BOOKS_WORD（精确） |
-| confirmStatus | string | 否 | — | UNCONFIRMED / CONFIRMED / SUBMITTED（精确） |
-| internalNo | string | 否 | — | 内部编号（精确） |
+| status | string | 否 | — | 申请包状态（精确） |
+| internalNo | string | 否 | — | 内部编号（模糊） |
+| disclosureName | string | 否 | — | 交底名称（模糊） |
+| sponsorName | string | 否 | — | 主办人（模糊） |
 
-**响应** — 分页格式 `{ records, total, pageNum, pageSize }`，`records` 为 `ApplicationPackage[]`
+数据库分页并自动应用数据范围：管理员查看全部；主办人只看自己的批次；流程专员只看分配给自己的非草稿批次。
 
-**ApplicationPackage 实体字段**
+### 13.2 查询详情与按交底查询
 
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| id | long | 主键 |
-| disclosureId | long | 交底ID |
-| internalNo | string | 内部编号 |
-| packageType | string | XML_PACKAGE / FIVE_BOOKS_WORD |
-| fileName | string | 原始文件名 |
-| fileExt | string | 扩展名 |
-| filePath | string | 存储路径 |
-| fileUrl | string | 访问URL |
-| fileSize | long | 字节数 |
-| contentType | string | MIME类型 |
-| versionNo | int | 版本号，覆盖上传+1 |
-| isCurrent | int | 是否当前有效版本（0 否 1 是） |
-| currentTypeKey | string | 当前版本唯一标识 |
-| uploadUserId | long | 上传人ID（主办） |
-| uploadUserName | string | 上传人姓名 |
-| uploadTime | datetime | 上传时间 |
-| confirmStatus | string | UNCONFIRMED 未确认 / CONFIRMED 可提交 / SUBMITTED 已交国知局 |
-| confirmUserId | long | 确认人ID（流程） |
-| confirmUserName | string | 确认人姓名 |
-| confirmTime | datetime | 确认时间 |
-| remark | string | 备注 |
-| createTime | datetime | 创建时间 |
-| updateTime | datetime | 更新时间 |
-
-### 13.2 全部列表（不分页）
-
-```
-GET /api/application-package/all
-```
-
-> 需权限：`patent:applicationPackage:list`
-
-### 13.3 详情
-
-```
-GET /api/application-package/{id}
+```text
+GET /api/application-package/batches/{packageToken}
+GET /api/application-package/batches/by-disclosure/{disclosureId}
 ```
 
 > 需权限：`patent:applicationPackage:query`
 
-### 13.4 新增
+详情包含当前文件、历史文件版本、各轮审核问题和完整操作日志。无效令牌、不存在和无数据权限统一提示“申请包不存在或无权访问”。
+
+### 13.3 创建草稿
 
 ```
-POST /api/application-package
+POST /api/application-package/drafts
 ```
 
-> 需权限：`patent:applicationPackage:add`
-
-**请求体** (JSON) — `ApplicationPackage` 对象。未传 `confirmStatus` 默认 `UNCONFIRMED`，未传 `versionNo` 默认 `1`，未传 `isCurrent` 默认 `1`。
-
-### 13.5 修改
-
-```
-PUT /api/application-package
-```
-
-> 需权限：`patent:applicationPackage:edit`
-
-**请求体** (JSON) — `ApplicationPackage` 对象，`id` 必填
-
-### 13.6 删除
-
-```
-DELETE /api/application-package/{id}
-```
-
-> 需权限：`patent:applicationPackage:delete`
-
-### 13.7 批量删除
-
-```
-DELETE /api/application-package/batch
-```
-
-> 需权限：`patent:applicationPackage:delete`
-
-**请求体** (JSON) — `[1, 2, 3]`
-
-### 13.8 按交底ID查询
-
-```
-GET /api/application-package/by-disclosure/{disclosureId}
-```
-
-> 需权限：`patent:applicationPackage:list`
-
-**响应** — `data` 为 `ApplicationPackage[]` 数组（按 `createTime` 降序）
-
-### 13.9 确认申请包
-
-```
-PUT /api/application-package/{id}/confirm
-```
-
-> 需权限：`patent:applicationPackage:edit`
-
-**请求参数** (Query)
-
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| confirmUserId | long | 是 | 确认人用户ID |
-| confirmUserName | string | 是 | 确认人姓名 |
-
-**响应**
+> 需权限：`patent:applicationPackage:compose`
 
 ```json
-{ "code": 200, "message": "确认成功", "data": { ... } }
+{ "disclosureId": 1 }
 ```
 
-> 将 `confirmStatus` 设为 `CONFIRMED`，同时记录确认人和确认时间
+仅主办人本人或管理员可为“定稿”交底创建；同一交底重复调用会返回已有批次。
+
+### 13.4 上传、替换或移除文件
+
+```text
+PUT /api/application-package/batches/{packageToken}/files/{documentCode}
+DELETE /api/application-package/batches/{packageToken}/files/{documentCode}
+```
+
+> 需权限：`patent:applicationPackage:compose`；Content-Type: `multipart/form-data`
+
+`documentCode` 为 `XML`、`REQUEST`、`DESCRIPTION`、`CLAIMS`、`ABSTRACT`、`ABSTRACT_DRAWING` 之一，上传表单字段为 `file`。只允许在 `DRAFT` / `REJECTED` 修改。移除只清空当前槽位，文件版本仍保留在历史记录中；再次上传继续递增版本号。单文件上限 10 MB。
+
+### 13.5 发送与接收
+
+```text
+POST /api/application-package/batches/{packageToken}/send
+POST /api/application-package/batches/{packageToken}/receive
+GET  /api/application-package/process-operators
+```
+
+首次发送请求体为 `{ "processUserId": 123 }`（这里是流程专员的用户 ID），需 `send` 权限；重新发送仍沿用原流程专员。接收需 `receive` 权限，且必须是该批次流程专员。流程专员候选接口返回启用且绑定 `role_id=7` 的用户。
+
+### 13.6 退回与审核通过
+
+```text
+POST /api/application-package/batches/{packageToken}/reject
+POST /api/application-package/batches/{packageToken}/approve
+```
+
+> 需权限：`patent:applicationPackage:review`
+
+退回请求体示例：
+
+```json
+{
+  "reason": "整体格式不合格",
+  "issues": [
+    { "documentCode": "CLAIMS", "issueText": "权利要求编号不连续" }
+  ]
+}
+```
+
+必须先接收进入 `REVIEWING` 才能退回或通过；退回总原因必填。整体原因和具体文件问题均按原始换行保存到审核问题历史。审核通过后文件锁定，交底状态变为“定稿待报”。
+
+### 13.7 管理解锁
+
+```text
+POST /api/application-package/batches/{packageToken}/unlock
+```
+
+> 需权限：`patent:applicationPackage:unlock`，且当前用户必须具有管理员角色。
+
+请求体为 `{ "reason": "误操作说明" }`。只允许解锁 `APPROVED`，回到 `REVIEWING` 并恢复交底为“定稿”；`SUBMITTED` 不可解锁。
+
+### 13.8 提交国知局
+
+```text
+POST /api/application-package/batches/{packageToken}/submit-cnipa
+```
+
+> 需权限：`patent:applicationPackage:submit`；Content-Type: `multipart/form-data`
+
+表单字段：`submissionNo`、ISO-8601 格式 `submittedAt`、XML 文件 `receipt`，三者必填。成功后状态为 `SUBMITTED`，交底变为“已申报”，并幂等生成一条 `patent_new_application`。
+
+### 13.9 文件下载票据
+
+```text
+POST /api/application-package/files/{fileToken}/download-ticket
+GET  /api/application-package/download/{ticket}
+```
+
+第一步校验角色、数据归属和文件权限，在 Redis 生成有效期 5 分钟且与当前用户绑定的一次性票据；第二步消费票据下载。票据被原子读取并删除，不能重复使用。
+
+### 13.10 文件与邮件规则
+
+- XML 禁止 DTD/外部实体；`.docx` 校验 ZIP 与 `word/document.xml`；`.doc` 校验 OLE 文件头。
+- 业务操作提交事务后发送邮件；邮件失败不回滚状态，操作日志显示失败原因。
+- 国知局回执使用 `fileRole=CNIPA_RECEIPT`，不计入六个组包文件。
+
+### 13.11 旧版 Word 在线预览
+
+```text
+POST /api/file-preview/legacy-word
+```
+
+使用 `multipart/form-data` 的 `file` 字段上传真实 `.doc`，最大 10 MB。成功时返回临时 `application/pdf`；转换结果只用于当前页面，不替换原文件，也不写入数据库。接口需要登录，转换任务限制并发和超时。
+
+Spring Boot 校验文件格式后，通过内网调用 Gotenberg 的 `/forms/libreoffice/convert`。当前默认 `GOTENBERG_ENABLED=false`，未安装 Docker 时 `.doc` 在线预览关闭，但不影响文件上传、下载和其他业务。Gotenberg 不得暴露到公网；需要开启时使用仓库根目录的 `compose.gotenberg.yml`，默认只绑定 `127.0.0.1:3000`：
+
+```text
+docker compose -f compose.gotenberg.yml up -d
+GOTENBERG_ENABLED=true
+GOTENBERG_BASE_URL=http://127.0.0.1:3000
+GOTENBERG_READ_TIMEOUT_SECONDS=70
+GOTENBERG_MAX_CONCURRENT=2
+```
+
+如果 Spring Boot 与 Gotenberg 位于同一 Docker Compose 网络，使用 `GOTENBERG_BASE_URL=http://gotenberg:3000`，无需将 Gotenberg 映射到宿主机公网端口。`.docx` 仍由前端 `@vue-office/docx` 渲染；申请包当前文件、历史版本和交底附件共同复用旧版 `.doc` 转 PDF 能力。
 
 ---
 
@@ -1816,6 +1840,8 @@ system:mailTemplate:list|query|add|edit|delete — 邮件模板管理
 patent:disclosure:list    — 列表/搜索
 patent:disclosure:query   — 详情/附件/日志/费用/开票
 patent:disclosure:add     — 新增
+patent:disclosure:copy    — 复制历史交底
+patent:disclosure:attachment:upload — 上传交底附件
 patent:disclosure:edit    — 修改
 patent:disclosure:delete  — 删除
 ```
@@ -1837,7 +1863,11 @@ patent:applicant:list|query|add|edit|delete  — 申请人管理
 
 ### 申请包
 ```
-patent:applicationPackage:list|query|add|edit|delete  — 申请包管理
+patent:applicationPackage:list|query          — 列表与详情
+patent:applicationPackage:compose|send        — 主办人组包与发送
+patent:applicationPackage:receive|review      — 流程专员接收与审核
+patent:applicationPackage:submit              — 流程专员登记提交国知局
+patent:applicationPackage:unlock              — 管理员纠错解锁
 ```
 
 ---

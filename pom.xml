@@ -105,6 +105,13 @@
             </exclusions>
         </dependency>
 
+        <!-- MyBatis-Plus 3.5.9+ 将分页解析器拆分为独立模块 -->
+        <dependency>
+            <groupId>com.baomidou</groupId>
+            <artifactId>mybatis-plus-jsqlparser</artifactId>
+            <version>3.5.15</version>
+        </dependency>
+
         <dependency>
             <groupId>org.mybatis</groupId>
             <artifactId>mybatis-spring</artifactId>

@@ -59,7 +59,8 @@ public class SecurityConfig {
                     "/api/acount/checkCode",
                     "/api/acount/register",
                     "/api/acount/login",
-                    "/api/acount/getSmsCode"
+                    "/api/acount/getSmsCode",
+                    "/ws/**"
                 ).permitAll()
                 .requestMatchers(HttpMethod.OPTIONS).permitAll()
                 .anyRequest().authenticated()

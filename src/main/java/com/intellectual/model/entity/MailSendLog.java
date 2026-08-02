@@ -4,6 +4,7 @@ import java.io.Serializable;
 import java.util.Date;
 import lombok.Data;
 import com.baomidou.mybatisplus.annotation.TableName;
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.IdType;
 
@@ -76,12 +77,15 @@ public class MailSendLog implements Serializable {
     private String senderName;
 
     /** 业务类型，例如 APPLICATION_PACKAGE */
+    @TableField(exist = false)
     private String businessType;
 
     /** 业务公开标识，不保存内部自增ID */
+    @TableField(exist = false)
     private String businessRef;
 
     /** SEND/REJECT/APPROVE/UNLOCK/SUBMIT */
+    @TableField(exist = false)
     private String businessAction;
 
     /**

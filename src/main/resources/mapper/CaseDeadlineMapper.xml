@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.intellectual.mapper.CaseDeadlineMapper">
+
+  <resultMap id="BaseResultMap" type="com.intellectual.model.entity.CaseDeadline">
+    <id column="id" jdbcType="BIGINT" property="id"/>
+    <result column="case_id" jdbcType="BIGINT" property="caseId"/>
+    <result column="deadline_type" jdbcType="VARCHAR" property="deadlineType"/>
+    <result column="deadline_time" jdbcType="TIMESTAMP" property="deadlineTime"/>
+    <result column="start_time" jdbcType="TIMESTAMP" property="startTime"/>
+    <result column="status" jdbcType="VARCHAR" property="status"/>
+    <result column="is_estimate_calc" jdbcType="TINYINT" property="isEstimateCalc"/>
+    <result column="create_time" jdbcType="TIMESTAMP" property="createTime"/>
+  </resultMap>
+  <sql id="Base_Column_List">
+    id, case_id, deadline_type, deadline_time, start_time, status, is_estimate_calc, 
+	create_time
+  </sql>
+</mapper>

@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.intellectual.mapper.ReminderRuleMapper">
+
+  <resultMap id="BaseResultMap" type="com.intellectual.model.entity.ReminderRule">
+    <id column="id" jdbcType="BIGINT" property="id"/>
+    <result column="user_id" jdbcType="BIGINT" property="userId"/>
+    <result column="case_id" jdbcType="BIGINT" property="caseId"/>
+    <result column="deadline_type" jdbcType="VARCHAR" property="deadlineType"/>
+    <result column="rule_type" jdbcType="VARCHAR" property="ruleType"/>
+    <result column="offset_value" jdbcType="INTEGER" property="offsetValue"/>
+    <result column="offset_unit" jdbcType="VARCHAR" property="offsetUnit"/>
+    <result column="percent_value" jdbcType="INTEGER" property="percentValue"/>
+    <result column="is_active" jdbcType="TINYINT" property="isActive"/>
+    <result column="create_time" jdbcType="TIMESTAMP" property="createTime"/>
+  </resultMap>
+  <sql id="Base_Column_List">
+    id, user_id, case_id, deadline_type, rule_type, offset_value, offset_unit, 
+	percent_value, is_active, create_time
+  </sql>
+</mapper>

@@ -1,6 +1,5 @@
 package com.intellectual.controller;
 
-import com.intellectual.annotation.RequirePermission;
 import com.intellectual.exception.BusinessException;
 import com.intellectual.model.constants.Constants;
 import com.intellectual.model.constants.ExceptionConstants;

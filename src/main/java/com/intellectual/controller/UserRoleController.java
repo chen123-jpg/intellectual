@@ -22,7 +22,7 @@ import java.util.stream.Collectors;
  * @since 2026-07-21 17:19
  */
 @RestController
-@RequestMapping("/sys-user-role")
+@RequestMapping({"/sys-user-role", "/api/sys-user-role"})
 public class UserRoleController {
 
     @Autowired

@@ -22,7 +22,7 @@ import java.util.stream.Collectors;
  * @since 2026-07-21 17:19
  */
 @RestController
-@RequestMapping("/sys-role-menu")
+@RequestMapping({"/sys-role-menu", "/api/sys-role-menu"})
 public class RoleMenuController {
 
     @Autowired

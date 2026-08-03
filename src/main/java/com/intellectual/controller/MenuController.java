@@ -25,7 +25,7 @@ import com.intellectual.security.LoginUser;
  * @since 2026-07-21 17:19
  */
 @RestController
-@RequestMapping("/sys-menu")
+@RequestMapping({"/sys-menu", "/api/sys-menu"})
 public class MenuController {
 
     @Autowired

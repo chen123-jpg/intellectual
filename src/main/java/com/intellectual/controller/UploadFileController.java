@@ -20,7 +20,7 @@ public class UploadFileController {
     /**
      * 上传文件 - 返回带原始文件名的 URL（?name=原始文件名）
      */
-    @PostMapping("/upload")
+    @PostMapping({"/upload", "/api/upload"})
     public Result<String> upload(@RequestParam("file") MultipartFile file) {
         return uploadFileService.upload(file);
     }
@@ -28,7 +28,7 @@ public class UploadFileController {
     /**
      * 查看/下载文件 - 从 URL 参数中获取原始文件名，并设置响应头
      */
-    @GetMapping("/files/{fileId}")   // fileId = uuid.ext
+    @GetMapping({"/files/{fileId}", "/api/files/{fileId}"})   // fileId = uuid.ext
     public ResponseEntity<Resource> getFile(
             @PathVariable String fileId,
             @RequestParam(value = "name", required = false) String originalName) {

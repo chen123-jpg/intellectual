@@ -19,7 +19,7 @@ import java.util.Map;
  * @since 2026-07-21 17:19
  */
 @RestController
-@RequestMapping("/sys-role")
+@RequestMapping({"/sys-role", "/api/sys-role"})
 public class RoleController {
 
     @Autowired

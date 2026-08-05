@@ -85,8 +85,8 @@ public class PushScheduler {
         boolean globalOnline = wsOnlineReceiver.isOnline(userId);
 
         if (!localOnline && !globalOnline) {
-            log.info("用户 {} 不在线(本地={},全局={})，消息 {} 暂存等待重试",
-                    userId, localOnline, globalOnline, msg.getId());
+            // log.info("用户 {} 不在线(本地={},全局={})，消息 {} 暂存等待重试",
+            //         userId, localOnline, globalOnline, msg.getId());
             return false;
         }
 

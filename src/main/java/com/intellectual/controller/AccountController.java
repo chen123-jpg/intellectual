@@ -76,7 +76,11 @@ public class AccountController {
         String code = String.valueOf((int) ((Math.random() * 9 + 1) * 100000));
         log.info( "{}的验证码: {}",mobile, code);
         redisUtils.set(Constants.REDIS_MOBILE_CHECK_CODE+mobile, code, Constants.REDIS_TIME_5MIN);
-        return Result.success(MessageConstants.GET_SMS_SUCCESS);
+        
+        // 直接将验证码返回给前端
+        Map<String, String> result = new HashMap<>();
+        result.put("code", code);
+        return Result.success(result, MessageConstants.GET_SMS_SUCCESS);
     }
 
     /**

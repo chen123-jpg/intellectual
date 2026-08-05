@@ -2,7 +2,9 @@ package com.intellectual.model.enums;
 
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @Getter
 public enum MailServerConfig {
     QQ("qq.com", "smtp.qq.com", 587),
@@ -36,4 +38,15 @@ public enum MailServerConfig {
         }
         return null; // 或者抛出异常
     }
+
+    public static MailServerConfig fromEmailOrThrow(String email)
+    {
+        MailServerConfig config = fromEmail(email);
+        if(config==null)
+        {
+            throw new IllegalArgumentException("未知的邮件服务器配置: " + email);
+        }
+        return config;
+    }
+
 }

@@ -51,7 +51,12 @@ public class Menu implements Serializable {
     private String target;
 
     /**
-     * 菜单类型（M目录 C菜单 F按钮）
+     * 所属模块（案件管理/客户管理/内部管理/系统管理/项目管理/质量检查）
+     */
+    private String module;
+
+    /**
+     * 权限类型（MENU菜单/PAGE页面/BUTTON按钮）
      */
     private String menuType;
 

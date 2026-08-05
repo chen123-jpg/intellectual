@@ -5,6 +5,9 @@
   <resultMap id="BaseResultMap" type="com.intellectual.model.entity.User">
     <id column="user_id" jdbcType="BIGINT" property="userId"/>
     <result column="dept_id" jdbcType="BIGINT" property="deptId"/>
+    <result column="emp_id" jdbcType="BIGINT" property="empId"/>
+    <result column="customer_id" jdbcType="BIGINT" property="customerId"/>
+    <result column="role_id" jdbcType="BIGINT" property="roleId"/>
     <result column="login_name" jdbcType="VARCHAR" property="loginName"/>
     <result column="user_name" jdbcType="VARCHAR" property="userName"/>
     <result column="user_type" jdbcType="VARCHAR" property="userType"/>
@@ -15,9 +18,13 @@
     <result column="password" jdbcType="VARCHAR" property="password"/>
     <result column="salt" jdbcType="VARCHAR" property="salt"/>
     <result column="status" jdbcType="CHAR" property="status"/>
+    <result column="account_valid_from" jdbcType="DATE" property="accountValidFrom"/>
+    <result column="account_valid_to" jdbcType="DATE" property="accountValidTo"/>
+    <result column="phone_verified" jdbcType="CHAR" property="phoneVerified"/>
     <result column="del_flag" jdbcType="CHAR" property="delFlag"/>
     <result column="login_ip" jdbcType="VARCHAR" property="loginIp"/>
     <result column="login_date" jdbcType="TIMESTAMP" property="loginDate"/>
+    <result column="login_fail_count" jdbcType="INTEGER" property="loginFailCount"/>
     <result column="pwd_update_date" jdbcType="TIMESTAMP" property="pwdUpdateDate"/>
     <result column="create_by" jdbcType="VARCHAR" property="createBy"/>
     <result column="create_time" jdbcType="TIMESTAMP" property="createTime"/>
@@ -26,8 +33,8 @@
     <result column="remark" jdbcType="VARCHAR" property="remark"/>
   </resultMap>
   <sql id="Base_Column_List">
-    user_id, dept_id, login_name, user_name, user_type, email, phone_number, 
-	sex, avatar, password, salt, status, del_flag, login_ip, 
-	login_date, pwd_update_date, create_by, create_time, update_by, update_time, remark
+    user_id, dept_id, emp_id, customer_id, role_id, login_name, user_name, user_type, email, phone_number,
+    sex, avatar, password, salt, status, account_valid_from, account_valid_to, phone_verified, del_flag, login_ip,
+    login_date, login_fail_count, pwd_update_date, create_by, create_time, update_by, update_time, remark
   </sql>
 </mapper>

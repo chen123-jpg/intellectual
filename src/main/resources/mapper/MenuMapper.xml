@@ -9,6 +9,7 @@
     <result column="order_num" jdbcType="INTEGER" property="orderNum"/>
     <result column="url" jdbcType="VARCHAR" property="url"/>
     <result column="target" jdbcType="VARCHAR" property="target"/>
+    <result column="module" jdbcType="VARCHAR" property="module"/>
     <result column="menu_type" jdbcType="CHAR" property="menuType"/>
     <result column="visible" jdbcType="CHAR" property="visible"/>
     <result column="is_refresh" jdbcType="CHAR" property="isRefresh"/>
@@ -21,8 +22,8 @@
     <result column="remark" jdbcType="VARCHAR" property="remark"/>
   </resultMap>
   <sql id="Base_Column_List">
-    menu_id, menu_name, parent_id, order_num, url, target, menu_type, 
-	visible, is_refresh, perms, icon, create_by, create_time, update_by, 
-	update_time, remark
+    menu_id, menu_name, parent_id, order_num, url, target, module, menu_type,
+    visible, is_refresh, perms, icon, create_by, create_time, update_by,
+    update_time, remark
   </sql>
 </mapper>

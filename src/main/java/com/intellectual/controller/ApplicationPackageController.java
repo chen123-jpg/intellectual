@@ -25,7 +25,6 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
-
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -44,6 +43,16 @@ public class ApplicationPackageController {
         this.workflowService = workflowService;
     }
 
+    /**
+     * 申请包分页
+     * @param pageNum
+     * @param pageSize
+     * @param status
+     * @param internalNo
+     * @param disclosureName
+     * @param sponsorName
+     * @return
+     */
     @RequirePermission("patent:applicationPackage:list")
     @GetMapping("/batches")
     public Result<?> list(@RequestParam(defaultValue = "1") Integer pageNum,
@@ -58,6 +67,11 @@ public class ApplicationPackageController {
                 disclosureName, sponsorName, getLoginUser()));
     }
 
+    /**
+     * 申请包详情
+     * @param packageToken
+     * @return
+     */
     @RequirePermission("patent:applicationPackage:query")
     @GetMapping("/batches/{packageToken}")
     public Result<?> detail(@PathVariable String packageToken) {

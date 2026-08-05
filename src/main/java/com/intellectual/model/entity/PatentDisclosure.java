@@ -26,7 +26,7 @@ public class PatentDisclosure implements Serializable {
     private Long id;
 
     /**
-     * 临时编号（如T250101）
+     * 临时编号（根据交底日期生成，如P20260802）
      */
     private String tempNo;
 

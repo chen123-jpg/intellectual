@@ -31,6 +31,16 @@ public class Role implements Serializable {
     private String roleName;
 
     /**
+     * 角色类型（INTERNAL内部/EXTERNAL外部）
+     */
+    private String roleType;
+
+    /**
+     * 所属组织ID
+     */
+    private Long orgId;
+
+    /**
      * 角色权限字符串
      */
     private String roleKey;
@@ -41,9 +51,14 @@ public class Role implements Serializable {
     private Integer roleSort;
 
     /**
-     * 数据范围（1：全部数据权限 2：自定数据权限 3：本部门数据权限 4：本部门及以下数据权限）
+     * 数据权限范围（ALL全部/CUSTOM自定/DEPT本部门/DEPT_TREE本部门及以下/CUSTOMER客户专属）
      */
     private String dataScope;
+
+    /**
+     * 是否系统内置角色（0否 1是）
+     */
+    private String isSystem;
 
     /**
      * 角色状态（0正常 1停用）

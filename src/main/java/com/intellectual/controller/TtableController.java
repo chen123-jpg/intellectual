@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.intellectual.annotation.RequirePermission;
 import com.intellectual.exception.BusinessException;
 import com.intellectual.model.dto.PatentDisclosureDTO;
+import com.intellectual.model.dto.PatentDisclosureUpdateDTO;
 import com.intellectual.model.dto.Result;
 import com.intellectual.model.entity.*;
 import com.intellectual.model.vo.SponsorOptionVo;
@@ -198,13 +199,21 @@ public class TtableController {
     /** 修改 */
     @RequirePermission("patent:disclosure:edit")
     @PutMapping
-    public Result update(@Valid @RequestBody PatentDisclosureDTO request) {
+    public Result update(@Valid @RequestBody PatentDisclosureUpdateDTO request) {
         if (request.getId() == null) {
             return Result.fail("ID不能为空");
         }
         PatentDisclosure existing = getVisibleDisclosure(request.getId());
         if (existing == null) {
             return Result.fail("交底记录不存在");
+        }
+        // 定稿待报/已申报只能由申请包工作流变更，普通编辑接口不允许直接设置，
+        // 避免绕过申请包流程直接改动影响后续业务流程。
+        if (request.getPatentStatus() != null
+                && !request.getPatentStatus().equals(existing.getPatentStatus())
+                && (DISCLOSURE_STATUS_PENDING_REPORT.equals(request.getPatentStatus())
+                || DISCLOSURE_STATUS_REPORTED.equals(request.getPatentStatus()))) {
+            return Result.fail("定稿待报和已申报只能由申请包工作流变更");
         }
         LoginUser loginUser = getLoginUser();
         if (loginUser != null && hasRole(loginUser, ROLE_ORGANIZER)

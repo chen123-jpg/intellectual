@@ -31,17 +31,32 @@ public class User implements Serializable {
     private Long deptId;
 
     /**
-     * 登录账号
+     * 关联员工ID
+     */
+    private Long empId;
+
+    /**
+     * 关联客户ID
+     */
+    private Long customerId;
+
+    /**
+     * 角色ID（主角色）
+     */
+    private Long roleId;
+
+    /**
+     * 登录账号(手机号)
      */
     private String loginName;
 
     /**
-     * 用户昵称
+     * 显示昵称
      */
     private String userName;
 
     /**
-     * 用户类型（00系统用户 01注册用户）
+     * 账号类型（INTERNAL/EXTERNAL_ADMIN/EXTERNAL_USER）
      */
     private String userType;
 
@@ -82,6 +97,21 @@ public class User implements Serializable {
     private String status;
 
     /**
+     * 账号有效期开始
+     */
+    private Date accountValidFrom;
+
+    /**
+     * 账号有效期结束
+     */
+    private Date accountValidTo;
+
+    /**
+     * 手机号是否验证（0未验证 1已验证）
+     */
+    private String phoneVerified;
+
+    /**
      * 删除标志（0代表存在 2代表删除）
      */
     private String delFlag;
@@ -95,6 +125,11 @@ public class User implements Serializable {
      * 最后登录时间
      */
     private Date loginDate;
+
+    /**
+     * 登录失败次数
+     */
+    private Integer loginFailCount;
 
     /**
      * 密码最后更新时间

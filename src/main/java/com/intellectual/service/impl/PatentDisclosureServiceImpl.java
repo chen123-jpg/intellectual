@@ -21,6 +21,9 @@ import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -40,6 +43,9 @@ import static com.intellectual.model.constants.TtableConstant.WORD_EXTENSIONS;
 public class PatentDisclosureServiceImpl extends ServiceImpl<PatentDisclosureMapper, PatentDisclosure> implements PatentDisclosureService {
 
     private static final String DISCLOSURE_SYNC = "DISCLOSURE_SYNC";
+    private static final String TEMP_NO_PREFIX = "P";
+    private static final ZoneId BUSINESS_ZONE_ID = ZoneId.of("Asia/Shanghai");
+    private static final DateTimeFormatter TEMP_NO_DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyyMMdd");
 
     private final PatentDisclosureMapper patentDisclosureMapper;
     private final DisclosureAttachmentMapper disclosureAttachmentMapper;
@@ -70,7 +76,8 @@ public class PatentDisclosureServiceImpl extends ServiceImpl<PatentDisclosureMap
         validateDisclosureDocument(disclosureDocuments);
 
         PatentDisclosure disclosure = new PatentDisclosure();
-        BeanUtils.copyProperties(request, disclosure, "id");
+        BeanUtils.copyProperties(request, disclosure, "id", "patentType");
+        disclosure.setTempNo(generateTempNo(disclosure.getDisclosureDate()));
         disclosure.setCopyFromId(sourceId);
         disclosure.setEntryUserId(uploadUserId);
         disclosure.setEntryUserName(uploadUserName);
@@ -241,6 +248,7 @@ public class PatentDisclosureServiceImpl extends ServiceImpl<PatentDisclosureMap
     @Override
     @Transactional(rollbackFor = Exception.class)
     public boolean updateWithRelatedRecords(PatentDisclosure disclosure) {
+        disclosure.setTempNo(generateTempNo(disclosure.getDisclosureDate()));
         if (patentDisclosureMapper.updateById(disclosure) != 1) {
             return false;
         }
@@ -252,6 +260,22 @@ public class PatentDisclosureServiceImpl extends ServiceImpl<PatentDisclosureMap
         syncFeePayment(current);
         syncInvoice(current);
         return true;
+    }
+
+    /**
+     * 根据日期自动生成临时编号
+     * @param disclosureDate
+     * @return
+     */
+    private String generateTempNo(Date disclosureDate) {
+        if (disclosureDate == null) {
+            throw new BusinessException("交底日期不能为空");
+        }
+        String datePart = Instant.ofEpochMilli(disclosureDate.getTime())
+                .atZone(BUSINESS_ZONE_ID)
+                .toLocalDate()
+                .format(TEMP_NO_DATE_FORMATTER);
+        return TEMP_NO_PREFIX + datePart;
     }
 
     private void syncFeePayment(PatentDisclosure disclosure) {

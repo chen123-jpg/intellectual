@@ -1,4 +1,6 @@
 package com.intellectual.model.entity;
+import com.baomidou.mybatisplus.annotation.TableField;
+import com.baomidou.mybatisplus.annotation.SqlCondition;
 
 import java.io.Serializable;
 import java.util.Date;
@@ -33,31 +35,43 @@ public class PatentSupplementary implements Serializable {
     /**
      * 申请号/专利号
      */
+    
+    @TableField(condition = SqlCondition.LIKE)
     private String applicationNo;
 
     /**
      * 发明创造名称
      */
+    
+    @TableField(condition = SqlCondition.LIKE)
     private String patentName;
 
     /**
      * 申请人
      */
+    
+    @TableField(condition = SqlCondition.LIKE)
     private String applicant;
 
     /**
      * 发明人
      */
+    
+    @TableField(condition = SqlCondition.LIKE)
     private String inventor;
 
     /**
      * 主办人
      */
+    
+    @TableField(condition = SqlCondition.LIKE)
     private String sponsor;
 
     /**
      * 委托书代理人
      */
+    
+    @TableField(condition = SqlCondition.LIKE)
     private String agent;
 
     /**
@@ -68,6 +82,8 @@ public class PatentSupplementary implements Serializable {
     /**
      * 通知书（状态下子列）
      */
+    
+    @TableField(condition = SqlCondition.LIKE)
     private String notification;
 
     /**
@@ -78,11 +94,15 @@ public class PatentSupplementary implements Serializable {
     /**
      * 费减（状态下子列）
      */
+    
+    @TableField(condition = SqlCondition.LIKE)
     private String feeReduction;
 
     /**
      * 备注
      */
+    
+    @TableField(condition = SqlCondition.LIKE)
     private String remark;
 
     /**

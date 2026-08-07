@@ -1,4 +1,6 @@
 package com.intellectual.model.entity;
+import com.baomidou.mybatisplus.annotation.TableField;
+import com.baomidou.mybatisplus.annotation.SqlCondition;
 
 import java.io.Serializable;
 import java.math.BigDecimal;
@@ -34,6 +36,8 @@ public class PatentIntermediateChange implements Serializable {
     /**
      * 内部编号
      */
+    
+    @TableField(condition = SqlCondition.LIKE)
     private String internalNo;
 
     /**
@@ -44,31 +48,43 @@ public class PatentIntermediateChange implements Serializable {
     /**
      * 申请号
      */
+    
+    @TableField(condition = SqlCondition.LIKE)
     private String applicationNo;
 
     /**
      * 发明创造名称
      */
+    
+    @TableField(condition = SqlCondition.LIKE)
     private String patentName;
 
     /**
      * 申请人
      */
+    
+    @TableField(condition = SqlCondition.LIKE)
     private String applicant;
 
     /**
      * 发明人
      */
+    
+    @TableField(condition = SqlCondition.LIKE)
     private String inventor;
 
     /**
      * 主办人
      */
+    
+    @TableField(condition = SqlCondition.LIKE)
     private String sponsor;
 
     /**
      * 委托书代理人
      */
+    
+    @TableField(condition = SqlCondition.LIKE)
     private String agent;
 
     /**
@@ -89,6 +105,8 @@ public class PatentIntermediateChange implements Serializable {
     /**
      * 非正标-费减情况
      */
+    
+    @TableField(condition = SqlCondition.LIKE)
     private String feeReductionInfo;
 
     /**
@@ -109,16 +127,22 @@ public class PatentIntermediateChange implements Serializable {
     /**
      * 缴费状态
      */
+    
+    @TableField(condition = SqlCondition.LIKE)
     private String paymentStatus;
 
     /**
      * 备注1
      */
+    
+    @TableField(condition = SqlCondition.LIKE)
     private String remark1;
 
     /**
      * 备注2
      */
+    
+    @TableField(condition = SqlCondition.LIKE)
     private String remark2;
 
     /**

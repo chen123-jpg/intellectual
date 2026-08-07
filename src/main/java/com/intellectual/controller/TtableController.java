@@ -70,7 +70,7 @@ public class TtableController {
         return Result.success(sponsorDirectoryService.listActiveSponsors());
     }
 
-    /** 分页列表 */
+    /** 分页列表及高级搜索（全字段支持） */
     @RequirePermission("patent:disclosure:list")
     @GetMapping("/list")
     public Result list(@RequestParam(defaultValue = "1") Integer pageNum,
@@ -79,40 +79,50 @@ public class TtableController {
                        @RequestParam(required = false) String patentType,
                        @RequestParam(required = false) String patentStatus,
                        @RequestParam(required = false) String internalNo,
-                       @RequestParam(required = false) String applicant) {
+                       @RequestParam(required = false) String tempNo,
+                       @RequestParam(required = false) String applicant,
+                       @RequestParam(required = false) String inventor,
+                       @RequestParam(required = false) String agent,
+                       @RequestParam(required = false) String sponsor,
+                       @RequestParam(required = false) Long sponsorUserId,
+                       @RequestParam(required = false) String contactPerson,
+                       @RequestParam(required = false) String manager,
+                       @RequestParam(required = false) String requirement,
+                       @RequestParam(required = false) String remark,
+                       @RequestParam(required = false) String contactInfo,
+                       @RequestParam(required = false) String contactEmail,
+                       @RequestParam(required = false) String contactPhone,
+                       @RequestParam(required = false) String entryUserName,
+                       @RequestParam(required = false) Integer syncedToPatent,
+                       @RequestParam(required = false) String disclosureDateStart,
+                       @RequestParam(required = false) String disclosureDateEnd,
+                       @RequestParam(required = false) String createTimeStart,
+                       @RequestParam(required = false) String createTimeEnd) {
         LambdaQueryWrapper<PatentDisclosure> wrapper = new LambdaQueryWrapper<PatentDisclosure>()
-                .like(disclosureName != null, PatentDisclosure::getDisclosureName, disclosureName)
-                .eq(patentType != null, PatentDisclosure::getPatentType, patentType)
-                .eq(patentStatus != null, PatentDisclosure::getPatentStatus, patentStatus)
-                .eq(internalNo != null, PatentDisclosure::getInternalNo, internalNo)
-                .like(applicant != null, PatentDisclosure::getApplicant, applicant)
+                .like(disclosureName != null && !disclosureName.isBlank(), PatentDisclosure::getDisclosureName, disclosureName)
+                .eq(patentType != null && !patentType.isBlank(), PatentDisclosure::getPatentType, patentType)
+                .eq(patentStatus != null && !patentStatus.isBlank(), PatentDisclosure::getPatentStatus, patentStatus)
+                .like(internalNo != null && !internalNo.isBlank(), PatentDisclosure::getInternalNo, internalNo)
+                .like(tempNo != null && !tempNo.isBlank(), PatentDisclosure::getTempNo, tempNo)
+                .like(applicant != null && !applicant.isBlank(), PatentDisclosure::getApplicant, applicant)
+                .like(inventor != null && !inventor.isBlank(), PatentDisclosure::getInventor, inventor)
+                .like(agent != null && !agent.isBlank(), PatentDisclosure::getAgent, agent)
+                .like(sponsor != null && !sponsor.isBlank(), PatentDisclosure::getSponsor, sponsor)
+                .eq(sponsorUserId != null, PatentDisclosure::getSponsorUserId, sponsorUserId)
+                .like(contactPerson != null && !contactPerson.isBlank(), PatentDisclosure::getContactPerson, contactPerson)
+                .like(manager != null && !manager.isBlank(), PatentDisclosure::getManager, manager)
+                .like(requirement != null && !requirement.isBlank(), PatentDisclosure::getRequirement, requirement)
+                .like(remark != null && !remark.isBlank(), PatentDisclosure::getRemark, remark)
+                .like(contactInfo != null && !contactInfo.isBlank(), PatentDisclosure::getContactInfo, contactInfo)
+                .like(contactEmail != null && !contactEmail.isBlank(), PatentDisclosure::getContactEmail, contactEmail)
+                .like(contactPhone != null && !contactPhone.isBlank(), PatentDisclosure::getContactPhone, contactPhone)
+                .like(entryUserName != null && !entryUserName.isBlank(), PatentDisclosure::getEntryUserName, entryUserName)
+                .eq(syncedToPatent != null, PatentDisclosure::getSyncedToPatent, syncedToPatent)
+                .ge(disclosureDateStart != null && !disclosureDateStart.isBlank(), PatentDisclosure::getDisclosureDate, disclosureDateStart)
+                .le(disclosureDateEnd != null && !disclosureDateEnd.isBlank(), PatentDisclosure::getDisclosureDate, disclosureDateEnd)
+                .ge(createTimeStart != null && !createTimeStart.isBlank(), PatentDisclosure::getCreateTime, createTimeStart)
+                .le(createTimeEnd != null && !createTimeEnd.isBlank(), PatentDisclosure::getCreateTime, createTimeEnd)
                 .orderByDesc(PatentDisclosure::getCreateTime);
-        applyDisclosureDataScope(wrapper);
-        return pageResult(patentDisclosureService.list(wrapper), pageNum, pageSize);
-    }
-
-    /** 高级搜索（支持更多筛选条件） */
-    @RequirePermission("patent:disclosure:list")
-    @PostMapping("/search")
-    public Result search(@RequestParam(defaultValue = "1") Integer pageNum,
-                         @RequestParam(defaultValue = "10") Integer pageSize,
-                         @RequestBody(required = false) PatentDisclosure query) {
-        LambdaQueryWrapper<PatentDisclosure> wrapper = new LambdaQueryWrapper<>();
-        if (query != null) {
-            wrapper.like(query.getDisclosureName() != null, PatentDisclosure::getDisclosureName, query.getDisclosureName())
-                    .eq(query.getPatentType() != null, PatentDisclosure::getPatentType, query.getPatentType())
-                    .eq(query.getPatentStatus() != null, PatentDisclosure::getPatentStatus, query.getPatentStatus())
-                    .eq(query.getInternalNo() != null, PatentDisclosure::getInternalNo, query.getInternalNo())
-                    .eq(query.getTempNo() != null, PatentDisclosure::getTempNo, query.getTempNo())
-                    .like(query.getApplicant() != null, PatentDisclosure::getApplicant, query.getApplicant())
-                    .like(query.getInventor() != null, PatentDisclosure::getInventor, query.getInventor())
-                    .like(query.getAgent() != null, PatentDisclosure::getAgent, query.getAgent())
-                    .like(query.getSponsor() != null, PatentDisclosure::getSponsor, query.getSponsor())
-                    .eq(query.getSponsorUserId() != null, PatentDisclosure::getSponsorUserId, query.getSponsorUserId())
-                    .like(query.getContactPerson() != null, PatentDisclosure::getContactPerson, query.getContactPerson())
-                    .eq(query.getSyncedToPatent() != null, PatentDisclosure::getSyncedToPatent, query.getSyncedToPatent());
-        }
-        wrapper.orderByDesc(PatentDisclosure::getCreateTime);
         applyDisclosureDataScope(wrapper);
         return pageResult(patentDisclosureService.list(wrapper), pageNum, pageSize);
     }

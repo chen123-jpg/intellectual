@@ -1,4 +1,6 @@
 package com.intellectual.model.entity;
+import com.baomidou.mybatisplus.annotation.TableField;
+import com.baomidou.mybatisplus.annotation.SqlCondition;
 
 import java.io.Serializable;
 import java.util.Date;
@@ -28,36 +30,50 @@ public class PatentDisclosure implements Serializable {
     /**
      * 临时编号（根据交底日期生成，如P20260802）
      */
+    
+    @TableField(condition = SqlCondition.LIKE)
     private String tempNo;
 
     /**
      * 内部编号（与P表关联键）
      */
+    
+    @TableField(condition = SqlCondition.LIKE)
     private String internalNo;
 
     /**
      * 专利状态（如受理、N稿撰写中等）
      */
+    
+    @TableField(condition = SqlCondition.LIKE)
     private String patentStatus;
 
     /**
      * 要求（如一周内提交、追求授权等）
      */
+    
+    @TableField(condition = SqlCondition.LIKE)
     private String requirement;
 
     /**
      * 专利交底名称
      */
+    
+    @TableField(condition = SqlCondition.LIKE)
     private String disclosureName;
 
     /**
      * 申请人（可多个，用顿号或逗号分隔）
      */
+    
+    @TableField(condition = SqlCondition.LIKE)
     private String applicant;
 
     /**
      * 发明人
      */
+    
+    @TableField(condition = SqlCondition.LIKE)
     private String inventor;
 
     /**
@@ -73,21 +89,29 @@ public class PatentDisclosure implements Serializable {
     /**
      * 联系人姓名
      */
+    
+    @TableField(condition = SqlCondition.LIKE)
     private String contactPerson;
 
     /**
      * 管理人姓名
      */
+    
+    @TableField(condition = SqlCondition.LIKE)
     private String manager;
 
     /**
      * 代理人姓名
      */
+    
+    @TableField(condition = SqlCondition.LIKE)
     private String agent;
 
     /**
      * 主办人姓名
      */
+    
+    @TableField(condition = SqlCondition.LIKE)
     private String sponsor;
 
     /**
@@ -108,21 +132,29 @@ public class PatentDisclosure implements Serializable {
     /**
      * 备注
      */
+    
+    @TableField(condition = SqlCondition.LIKE)
     private String remark;
 
     /**
      * 联系人信息（含电话、邮箱、QQ等）
      */
+    
+    @TableField(condition = SqlCondition.LIKE)
     private String contactInfo;
 
     /**
      * 联系人邮箱(发邮件主收件人)
      */
+    
+    @TableField(condition = SqlCondition.LIKE)
     private String contactEmail;
 
     /**
      * 联系人电话
      */
+    
+    @TableField(condition = SqlCondition.LIKE)
     private String contactPhone;
 
     /**
@@ -133,6 +165,8 @@ public class PatentDisclosure implements Serializable {
     /**
      * 录入人姓名
      */
+    
+    @TableField(condition = SqlCondition.LIKE)
     private String entryUserName;
 
     /**
@@ -143,6 +177,8 @@ public class PatentDisclosure implements Serializable {
     /**
      * 编号方式: AUTO/MANUAL
      */
+    
+    @TableField(condition = SqlCondition.LIKE)
     private String noGenerateMode;
 
     /**

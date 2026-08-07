@@ -1,4 +1,6 @@
 package com.intellectual.model.entity;
+import com.baomidou.mybatisplus.annotation.TableField;
+import com.baomidou.mybatisplus.annotation.SqlCondition;
 
 import java.io.Serializable;
 import java.math.BigDecimal;
@@ -44,41 +46,57 @@ public class PatentReexamination implements Serializable {
     /**
      * 案件编号
      */
+    
+    @TableField(condition = SqlCondition.LIKE)
     private String caseNo;
 
     /**
      * 内部编号
      */
+    
+    @TableField(condition = SqlCondition.LIKE)
     private String internalNo;
 
     /**
      * 申请号
      */
+    
+    @TableField(condition = SqlCondition.LIKE)
     private String applicationNo;
 
     /**
      * 专利名称
      */
+    
+    @TableField(condition = SqlCondition.LIKE)
     private String patentName;
 
     /**
      * 申请人
      */
+    
+    @TableField(condition = SqlCondition.LIKE)
     private String applicant;
 
     /**
      * 主办人
      */
+    
+    @TableField(condition = SqlCondition.LIKE)
     private String sponsor;
 
     /**
      * 委托书代理人
      */
+    
+    @TableField(condition = SqlCondition.LIKE)
     private String agent;
 
     /**
      * 通知书
      */
+    
+    @TableField(condition = SqlCondition.LIKE)
     private String notification;
 
     /**
@@ -94,6 +112,8 @@ public class PatentReexamination implements Serializable {
     /**
      * 25.6.12查询
      */
+    
+    @TableField(condition = SqlCondition.LIKE)
     private String queryInfo;
 
     /**
@@ -104,11 +124,15 @@ public class PatentReexamination implements Serializable {
     /**
      * 缴费时间
      */
+    
+    @TableField(condition = SqlCondition.LIKE)
     private String paymentDate;
 
     /**
      * 附注1
      */
+    
+    @TableField(condition = SqlCondition.LIKE)
     private String note1;
 
     /**

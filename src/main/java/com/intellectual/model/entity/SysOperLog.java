@@ -1,4 +1,6 @@
 package com.intellectual.model.entity;
+import com.baomidou.mybatisplus.annotation.TableField;
+import com.baomidou.mybatisplus.annotation.SqlCondition;
 
 import java.io.Serializable;
 import java.util.Date;
@@ -33,11 +35,15 @@ public class SysOperLog implements Serializable {
     /**
      * 操作类型：CREATE_RULE/UPDATE_RULE/DELETE_RULE/BATCH_PERCENT/MARK_READ
      */
+    
+    @TableField(condition = SqlCondition.LIKE)
     private String operType;
 
     /**
      * 操作内容（JSON格式：变更前后数据）
      */
+    
+    @TableField(condition = SqlCondition.LIKE)
     private String content;
 
     /**
@@ -48,5 +54,7 @@ public class SysOperLog implements Serializable {
     /**
      * 客户端IP
      */
+    
+    @TableField(condition = SqlCondition.LIKE)
     private String ip;
 }

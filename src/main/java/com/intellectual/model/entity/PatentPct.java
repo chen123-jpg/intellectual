@@ -1,4 +1,6 @@
 package com.intellectual.model.entity;
+import com.baomidou.mybatisplus.annotation.TableField;
+import com.baomidou.mybatisplus.annotation.SqlCondition;
 
 import java.io.Serializable;
 import java.util.Date;
@@ -33,6 +35,8 @@ public class PatentPct implements Serializable {
     /**
      * PCT内部编号
      */
+    
+    @TableField(condition = SqlCondition.LIKE)
     private String pctInternalNo;
 
     /**
@@ -48,11 +52,15 @@ public class PatentPct implements Serializable {
     /**
      * 在先内部编号
      */
+    
+    @TableField(condition = SqlCondition.LIKE)
     private String priorInternalNo;
 
     /**
      * 在先申请号
      */
+    
+    @TableField(condition = SqlCondition.LIKE)
     private String priorApplicationNo;
 
     /**
@@ -68,41 +76,57 @@ public class PatentPct implements Serializable {
     /**
      * 申请名称
      */
+    
+    @TableField(condition = SqlCondition.LIKE)
     private String applicationName;
 
     /**
      * 申请号（PCT号）
      */
+    
+    @TableField(condition = SqlCondition.LIKE)
     private String applicationNo;
 
     /**
      * 申请人
      */
+    
+    @TableField(condition = SqlCondition.LIKE)
     private String applicant;
 
     /**
      * 发明人
      */
+    
+    @TableField(condition = SqlCondition.LIKE)
     private String inventor;
 
     /**
      * 主办人
      */
+    
+    @TableField(condition = SqlCondition.LIKE)
     private String sponsor;
 
     /**
      * 委托书代理人
      */
+    
+    @TableField(condition = SqlCondition.LIKE)
     private String agent;
 
     /**
      * 初检结论
      */
+    
+    @TableField(condition = SqlCondition.LIKE)
     private String preliminaryConclusion;
 
     /**
      * 备注
      */
+    
+    @TableField(condition = SqlCondition.LIKE)
     private String remark;
 
     /**

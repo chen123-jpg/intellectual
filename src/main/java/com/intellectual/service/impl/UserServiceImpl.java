@@ -290,6 +290,11 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         }
         userMapper.insert(user);
 
+        Mail mail = new Mail();
+        mail.setUserId(user.getUserId());
+        mail.setEmail(user.getEmail());
+        mailMapper.insert(mail);
+
         if (dto.getRoleIds() != null) {
             for (Long roleId : dto.getRoleIds()) {
                 userRoleMapper.insertUserRole(user.getUserId(), roleId);
@@ -323,6 +328,11 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
             user.setPassword(PasswordUtils.encode(dto.getPassword()));
         }
         userMapper.updateById(user);
+
+        Mail mail = new Mail();
+        mail.setEmail(dto.getEmail());
+        mail.setUserId(dto.getUserId());
+        mailMapper.update(mail,Wrappers.lambdaUpdate(Mail.class).eq(Mail::getEmail,dto.getEmail()));
 
         if (dto.getRoleIds() != null) {
             userRoleMapper.delete(Wrappers.lambdaQuery(UserRole.class).eq(UserRole::getUserId, dto.getUserId()));

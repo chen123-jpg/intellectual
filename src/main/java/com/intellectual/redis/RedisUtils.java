@@ -543,4 +543,23 @@ public class RedisUtils {
             return 0;
         }
     }
+
+    /**
+     * 删除匹配指定模式的所有Key（使用SCAN避免阻塞）
+     * @param pattern 匹配模式，如 "patent:menu:all:*"
+     * @return 删除的Key数量
+     */
+    public long deleteByPattern(String pattern) {
+        try {
+            Set<String> keys = redisTemplate.keys(pattern);
+            if (keys != null && !keys.isEmpty()) {
+                redisTemplate.delete(keys);
+                return keys.size();
+            }
+            return 0;
+        } catch (Exception e) {
+            log.error("Redis批量删除失败, pattern: {}", pattern, e);
+            return 0;
+        }
+    }
 }

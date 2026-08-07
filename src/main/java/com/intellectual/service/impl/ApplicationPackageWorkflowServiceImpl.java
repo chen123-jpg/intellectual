@@ -554,6 +554,8 @@ public class ApplicationPackageWorkflowServiceImpl implements ApplicationPackage
             application.setInventor(disclosure.getInventor());
             application.setSponsor(disclosure.getSponsor());
             application.setAgent(disclosure.getAgent());
+            application.setMentor(disclosure.getMentor());
+            application.setBusinessPersonnel(disclosure.getBusinessPersonnel());
             application.setPatentType(disclosure.getPatentType());
             application.setApplicationDate(submittedAt);
             application.setCreateTime(new Date());

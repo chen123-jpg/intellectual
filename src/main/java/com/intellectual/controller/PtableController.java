@@ -58,6 +58,8 @@ public class PtableController {
                                      @RequestParam(required = false) String inventor,
                                      @RequestParam(required = false) String sponsor,
                                      @RequestParam(required = false) String agent,
+                                     @RequestParam(required = false) String mentor,
+                                     @RequestParam(required = false) String businessPersonnel,
                                      @RequestParam(required = false) String notification,
                                      @RequestParam(required = false) String preExamMark,
                                      @RequestParam(required = false) String paymentDate,
@@ -79,6 +81,8 @@ public class PtableController {
                 .like(inventor != null && !inventor.isBlank(), PatentNewApplication::getInventor, inventor)
                 .like(sponsor != null && !sponsor.isBlank(), PatentNewApplication::getSponsor, sponsor)
                 .like(agent != null && !agent.isBlank(), PatentNewApplication::getAgent, agent)
+                .like(mentor != null && !mentor.isBlank(), PatentNewApplication::getMentor, mentor)
+                .like(businessPersonnel != null && !businessPersonnel.isBlank(), PatentNewApplication::getBusinessPersonnel, businessPersonnel)
                 .like(notification != null && !notification.isBlank(), PatentNewApplication::getNotification, notification)
                 .like(preExamMark != null && !preExamMark.isBlank(), PatentNewApplication::getPreExamMark, preExamMark)
                 .like(paymentDate != null && !paymentDate.isBlank(), PatentNewApplication::getPaymentDate, paymentDate)

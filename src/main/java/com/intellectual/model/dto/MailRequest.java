@@ -9,6 +9,10 @@ import java.util.Map;
 public class MailRequest {
     //交底Id
     private Long disclosureId;
+    /** 关联ID：交底ID或内部编号(P表关联键)，优先于 disclosureId/internalNo */
+    private String referenceId;
+    /** 内部编号（P表关联键） */
+    private String internalNo;
     /** 收件人，逗号/分号分隔 */
     private String to;
     /** 抄送，逗号/分号分隔 */

@@ -34,7 +34,7 @@ public class ApplicationPackageMailListener {
         }
         try {
             Result result = mailService.sendBusinessMail(
-                    event.recipientEmails(), event.subject(), event.content(),
+                    event.referenceId(), event.recipientEmails(), event.subject(), event.content(),
                     "APPLICATION_PACKAGE", event.packageToken(), event.action());
             if (result.getCode() == 200) {
                 log.setMailStatus("SUCCESS");

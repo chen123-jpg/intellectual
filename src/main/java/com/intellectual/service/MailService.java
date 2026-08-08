@@ -15,12 +15,12 @@ import java.util.List;
  * @since 2026-07-23 19:09
  */
 public interface MailService extends IService<Mail> {
-    Result sendMail(Long disclosureId, String to, String subject, String content, String cc, boolean isHtml, MultipartFile files, List<Long> disclosureAttachmentIds);
+    Result sendMail(String referenceId, String to, String subject, String content, String cc, boolean isHtml, MultipartFile files, List<Long> disclosureAttachmentIds);
 
     Result sendMailWithTemplate(MailRequest request);
 
     Result renderPreview(MailRequest request);
 
-    Result sendBusinessMail(String to, String subject, String content,
+    Result sendBusinessMail(String referenceId, String to, String subject, String content,
                             String businessType, String businessRef, String businessAction);
 }

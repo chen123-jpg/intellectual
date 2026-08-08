@@ -944,7 +944,11 @@ public class ApplicationPackageWorkflowServiceImpl implements ApplicationPackage
         actionLogService.save(log);
         if (subject != null) {
             eventPublisher.publishEvent(new ApplicationPackageMailEvent(
-                    log.getId(), recipientEmails, subject, content, batch.getPublicId(), action));
+                    log.getId(),
+                    batch.getInternalNo() != null && !batch.getInternalNo().isBlank()
+                            ? batch.getInternalNo()
+                            : String.valueOf(batch.getDisclosureId()),
+                    recipientEmails, subject, content, batch.getPublicId(), action));
         }
         return log;
     }

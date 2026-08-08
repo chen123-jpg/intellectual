@@ -1139,7 +1139,7 @@ POST /api/mail/sendMaill
 
 | 参数 | 类型 | 必填 | 默认值 | 说明 |
 |------|------|------|--------|------|
-| disclosureId | long | 否 | — | 关联专利交底ID，非必填 |
+| referenceId | string | 否 | — | 关联ID：交底ID或内部编号（P表关联键），非必填 |
 | to | string | 是 | — | 收件人邮箱 |
 | subject | string | 是 | — | 邮件主题 |
 | content | string | 是 | — | 邮件正文 |
@@ -1156,7 +1156,7 @@ POST /api/mail/sendMaill
   "message": "发送成功",
   "data": {
     "id": 1024,
-    "disclosureId": 1,
+    "referenceId": "P2025010",
     "fromEmail": "zhangsan@example.com",
     "toEmails": "receiver@example.com",
     "subject": "邮件主题",
@@ -1185,7 +1185,7 @@ POST /api/mail/sendMailWithTemplate
 
 ```json
 {
-  "disclosureId": 1,
+  "referenceId": "P2025010",
   "to": "user@example.com",
   "cc": "cc@example.com",
   "subject": "邮件主题",
@@ -1204,7 +1204,9 @@ POST /api/mail/sendMailWithTemplate
 
 | 字段 | 类型 | 必填 | 说明 |
 |------|------|------|------|
-| disclosureId | long | 否 | 关联专利交底ID，非必填 |
+| referenceId | string | 否 | 关联ID（交底ID或内部编号），优先级最高 |
+| internalNo | string | 否 | 内部编号（P表关联键），referenceId 缺省时使用 |
+| disclosureId | long | 否 | 关联专利交底ID，referenceId 与 internalNo 均缺省时使用 |
 | to | string | 是 | 收件人，逗号/分号分隔多人 |
 | cc | string | 否 | 抄送，逗号/分号分隔多人 |
 | bcc | string | 否 | 密送，逗号/分号分隔多人 |
@@ -1244,7 +1246,7 @@ POST /api/mail/renderPreview
 
 ---
 
-### 9.3 邮件发送日志查询（按交底 ID）
+### 9.3 邮件发送日志查询（按关联ID）
 
 ```
 GET /api/mail-send-log
@@ -1256,7 +1258,7 @@ GET /api/mail-send-log
 
 | 参数 | 类型 | 必填 | 说明 |
 |------|------|------|------|
-| disclosureId | long | 否 | 专利交底 ID，不传则返回全部发送记录 |
+| referenceId | string | 否 | 关联ID：交底ID或内部编号（P表关联键），不传则返回全部发送记录 |
 
 **响应** — `data` 为对象数组，每个对象包含 `mailSendLog` 和 `attachmentList`：
 
@@ -1265,7 +1267,7 @@ GET /api/mail-send-log
 | 字段 | 类型 | 说明 |
 |------|------|------|
 | id | long | 主键 |
-| disclosureId | long | 关联交底 ID |
+| referenceId | string | 关联ID：交底ID或内部编号（P表关联键） |
 | fromEmail | string | 发件人邮箱 |
 | toEmails | string | 收件人 |
 | ccEmails | string | 抄送 |

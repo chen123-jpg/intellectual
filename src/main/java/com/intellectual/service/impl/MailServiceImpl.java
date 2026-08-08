@@ -74,7 +74,7 @@ public class MailServiceImpl extends ServiceImpl<MailMapper, Mail> implements Ma
         this.uploadPath = Paths.get(uploadDir).toAbsolutePath().normalize();
     }
 
-    public Result sendMail(Long disclosureId, String to, String subject, String content, String cc,
+    public Result sendMail(String referenceId, String to, String subject, String content, String cc,
                            boolean isHtml, MultipartFile file, List<Long> disclosureAttachmentIds) {
         LoginUser loginUser = (LoginUser) SecurityContextHolder.getContext()
                 .getAuthentication().getPrincipal();
@@ -90,7 +90,7 @@ public class MailServiceImpl extends ServiceImpl<MailMapper, Mail> implements Ma
 
         // 1. 保存发送记录 (PENDING)
         MailSendLog sendLog = new MailSendLog();
-        sendLog.setDisclosureId(disclosureId);
+        sendLog.setReferenceId(referenceId);
         sendLog.setFromEmail(email);
         sendLog.setToEmails(to);
         sendLog.setCcEmails(cc != null ? cc : "");
@@ -195,11 +195,11 @@ public class MailServiceImpl extends ServiceImpl<MailMapper, Mail> implements Ma
     }
 
     @Override
-    public Result sendBusinessMail(String to, String subject, String content,
+    public Result sendBusinessMail(String referenceId, String to, String subject, String content,
                                    String businessType, String businessRef, String businessAction) {
         businessMailContext.set(new BusinessMailContext(businessType, businessRef, businessAction));
         try {
-            return sendMail(null, to, subject, content, null, true, null, null);
+            return sendMail(referenceId, to, subject, content, null, true, null, null);
         } finally {
             businessMailContext.remove();
         }
@@ -252,12 +252,12 @@ public class MailServiceImpl extends ServiceImpl<MailMapper, Mail> implements Ma
             }
         }
 
-        log.info("sendMailWithTemplate 请求参数: disclosureId={}, to={}, templateCode={}, attachmentUrls={}, disclosureAttachmentIds={}",
-                request.getDisclosureId(), request.getTo(), request.getTemplateCode(), request.getAttachmentUrls(), request.getDisclosureAttachmentIds());
+        log.info("sendMailWithTemplate 请求参数: referenceId={}, to={}, templateCode={}, attachmentUrls={}, disclosureAttachmentIds={}",
+                resolveReferenceId(request), request.getTo(), request.getTemplateCode(), request.getAttachmentUrls(), request.getDisclosureAttachmentIds());
 
         // 3. 保存发送记录 (PENDING)
         MailSendLog sendLog = new MailSendLog();
-        sendLog.setDisclosureId(request.getDisclosureId());
+        sendLog.setReferenceId(resolveReferenceId(request));
         sendLog.setFromEmail(email);
         sendLog.setToEmails(request.getTo());
         sendLog.setCcEmails(request.getCc() != null ? request.getCc() : "");
@@ -405,6 +405,19 @@ public class MailServiceImpl extends ServiceImpl<MailMapper, Mail> implements Ma
         props.put("mail.smtp.writetimeout", 10000);
         mailSender.setJavaMailProperties(props);
         return mailSender;
+    }
+
+    private String resolveReferenceId(MailRequest request) {
+        if (request.getReferenceId() != null && !request.getReferenceId().isBlank()) {
+            return request.getReferenceId();
+        }
+        if (request.getInternalNo() != null && !request.getInternalNo().isBlank()) {
+            return request.getInternalNo();
+        }
+        if (request.getDisclosureId() != null) {
+            return String.valueOf(request.getDisclosureId());
+        }
+        return null;
     }
 
     private Path resolvePath(String fileUrl) {

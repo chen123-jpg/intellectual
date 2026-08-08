@@ -51,16 +51,13 @@ public class MailSendLogServiceImpl extends ServiceImpl<MailSendLogMapper, MailS
     }
 
     @Override
-    public Result getlogById(Long disclosureId) {
+    public Result getLogByReferenceId(String referenceId) {
         var query = Wrappers.lambdaQuery(MailSendLog.class)
                 .orderByDesc(MailSendLog::getCreateTime);
-        if (disclosureId != null) {
-            query.eq(MailSendLog::getDisclosureId, disclosureId);
+        if (referenceId != null && !referenceId.isBlank()) {
+            query.eq(MailSendLog::getReferenceId, referenceId);
         }
         List<MailSendLog> logList = mailSendLogMapper.selectList(query);
-        if (logList.isEmpty()) {
-            return Result.fail("记录不存在");
-        }
 
         List<Map<String, Object>> resultList = new java.util.ArrayList<>();
         for (MailSendLog mailSendLog : logList) {

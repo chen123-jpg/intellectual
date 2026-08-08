@@ -4,6 +4,7 @@
 
   <resultMap id="BaseResultMap" type="com.intellectual.model.entity.MailSendLog">
     <id column="id" jdbcType="BIGINT" property="id"/>
+    <result column="reference_id" jdbcType="VARCHAR" property="referenceId"/>
     <result column="from_email" jdbcType="VARCHAR" property="fromEmail"/>
     <result column="to_emails" jdbcType="VARCHAR" property="toEmails"/>
     <result column="cc_emails" jdbcType="VARCHAR" property="ccEmails"/>
@@ -22,7 +23,7 @@
     <result column="content" jdbcType="LONGVARCHAR" property="content"/>
   </resultMap>
   <sql id="Base_Column_List">
-    id, from_email, to_emails,
+    id, reference_id, from_email, to_emails,
 	cc_emails, subject, send_status, error_message, sender_user_id, sender_name,
     business_type, business_ref, business_action, sent_at,
 	create_time

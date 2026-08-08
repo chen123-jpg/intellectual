@@ -27,9 +27,9 @@ public class MailSendLog implements Serializable {
     private Long id;
 
     /**
-     * 专利交底 id
+     * 关联ID：交底ID或内部编号（P表关联键）
      */
-    private Long disclosureId;
+    private String referenceId;
 
     /**
      * 发件人邮箱

@@ -14,7 +14,7 @@ import java.util.List;
  */
 public interface MailSendLogService extends IService<MailSendLog> {
 
-    Result getlogById(Long disclosureId);
+    Result getLogByReferenceId(String referenceId);
 
     Result getPage(Long userId, Integer current, Integer size);
 

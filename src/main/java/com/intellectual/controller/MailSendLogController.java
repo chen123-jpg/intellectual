@@ -15,8 +15,8 @@ public class MailSendLogController {
     private MailSendLogService mailSendLogService;
 
     @GetMapping
-    public Result getLogByDisclosureId(@RequestParam(required = false) Long disclosureId) {
-        return mailSendLogService.getlogById(disclosureId);
+    public Result getLogByReferenceId(@RequestParam(required = false) String referenceId) {
+        return mailSendLogService.getLogByReferenceId(referenceId);
     }
 
     @GetMapping("/list")

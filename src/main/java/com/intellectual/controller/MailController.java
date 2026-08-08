@@ -23,7 +23,7 @@ public class MailController {
     private MailService mailService;
 
     @PostMapping("/sendMaill")
-    public Result sendMail(@RequestParam(required = false) Long disclosureId,
+    public Result sendMail(@RequestParam(required = false) String referenceId,
                            @RequestParam String to,
                            @RequestParam String subject,
                            @RequestParam String content,
@@ -32,7 +32,7 @@ public class MailController {
                            @RequestParam(required = false) MultipartFile files,
                            @RequestParam(required = false) List<Long> disclosureAttachmentIds) {
 
-        return mailService.sendMail(disclosureId, to, subject, content, cc, isHtml, files, disclosureAttachmentIds);
+        return mailService.sendMail(referenceId, to, subject, content, cc, isHtml, files, disclosureAttachmentIds);
     }
 
     @PostMapping("sendMailWithTemplate")

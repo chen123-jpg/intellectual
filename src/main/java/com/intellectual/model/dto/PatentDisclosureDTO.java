@@ -35,7 +35,6 @@ public class PatentDisclosureDTO {
 
     private String inventor;
 
-    @NotBlank(message = "专利类型不能为空")
     private String patentType;
 
     @Min(value = 0, message = "是否邀请进群只能为0或1")
@@ -47,6 +46,10 @@ public class PatentDisclosureDTO {
     private String manager;
 
     private String agent;
+
+    private String mentor;
+
+    private String businessPersonnel;
 
     private String sponsor;
 

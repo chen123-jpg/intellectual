@@ -1100,7 +1100,7 @@ POST /api/mail/sendMailWithTemplate
 
 ---
 
-### 9.3 邮件发送日志查询
+### 9.3 邮件发送日志查询（按交底 ID）
 
 ```
 GET /api/mail-send-log
@@ -1148,6 +1148,142 @@ GET /api/mail-send-log
 | filePath | string | 磁盘路径 |
 | fileUrl | string | 访问 URL |
 | fileSize | long | 文件大小（字节） |
+
+---
+
+### 9.4 邮件发送日志分页列表
+
+```
+GET /api/mail-send-log/list
+```
+
+> **需认证**
+
+**请求参数** (Query)
+
+| 参数 | 类型 | 必填 | 默认值 | 说明 |
+|------|------|------|--------|------|
+| userId | long | 是 | — | 用户 ID |
+| pageNum | int | 否 | 1 | 页码 |
+| pageSize | int | 否 | 10 | 每页条数 |
+
+**响应** — 分页格式 `{ records, total, pageNum, pageSize }`
+
+---
+
+### 9.5 邮件发送日志详情
+
+```
+GET /api/mail-send-log/{id}
+```
+
+> **需认证**
+
+---
+
+### 9.6 删除邮件发送日志
+
+```
+DELETE /api/mail-send-log/{id}
+```
+
+> **需认证**
+
+**响应**
+```json
+{ "code": 200, "message": "删除成功", "data": null }
+```
+
+---
+
+### 9.7 批量删除邮件发送日志
+
+```
+DELETE /api/mail-send-log/batch
+```
+
+> **需认证**
+
+**请求体** (JSON) — `[1, 2, 3]`
+
+---
+
+### 9.8 重发邮件
+
+```
+POST /api/mail-send-log/resend/{id}
+```
+
+> **需认证**
+
+根据日志 ID 重新发送失败的邮件。
+
+**响应**
+```json
+{ "code": 200, "message": "重发成功", "data": null }
+```
+
+---
+
+### 9.9 邮件接收日志 `/api/mail-receive-log`
+
+> 对应数据表：`mail_receive_log`
+
+#### 9.9.1 分页列表
+
+```
+GET /api/mail-receive-log/list
+```
+
+> **需认证**
+
+**请求参数** (Query)
+
+| 参数 | 类型 | 必填 | 默认值 | 说明 |
+|------|------|------|--------|------|
+| userId | long | 是 | — | 用户 ID |
+| pageNum | int | 否 | 1 | 页码 |
+| pageSize | int | 否 | 10 | 每页条数 |
+
+**MailReceiveLog 实体字段**
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| id | long | 主键 |
+| fromEmail | string | 发件人邮箱 |
+| toEmails | string | 收件人 |
+| subject | string | 主题 |
+| content | string | 正文 |
+| senderUserId | long | 收件人用户 ID |
+| senderName | string | 收件人姓名 |
+| receivedAt | datetime | 接收时间 |
+| createTime | datetime | 创建时间 |
+
+#### 9.9.2 详情
+
+```
+GET /api/mail-receive-log/{id}
+```
+
+> **需认证**
+
+#### 9.9.3 删除
+
+```
+DELETE /api/mail-receive-log/{id}
+```
+
+> **需认证**
+
+#### 9.9.4 批量删除
+
+```
+DELETE /api/mail-receive-log/batch
+```
+
+> **需认证**
+
+**请求体** (JSON) — `[1, 2, 3]`
 
 ---
 
@@ -2148,6 +2284,115 @@ GOTENBERG_MAX_CONCURRENT=2
 ```
 
 如果 Spring Boot 与 Gotenberg 位于同一 Docker Compose 网络，使用 `GOTENBERG_BASE_URL=http://gotenberg:3000`，无需将 Gotenberg 映射到宿主机公网端口。`.docx` 仍由前端 `@vue-office/docx` 渲染；申请包当前文件、历史版本和交底附件共同复用旧版 `.doc` 转 PDF 能力。
+
+---
+
+## 十四、通知消息接口 `/api/notification`
+
+> 对应数据表：`notification_message`（提醒消息表）。消息由后端定时任务扫描案件时限自动生成并写入数据库，通过 WebSocket 实时推送给在线用户。
+
+### 14.1 标记单条消息已读
+
+```
+POST /api/notification/read/{msgId}
+```
+
+> **需认证**
+
+**路径参数**
+
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| msgId | long | 消息 ID |
+
+只允许标记本人接收的消息；重复标记已读无副作用。
+
+**响应**
+
+```json
+{ "code": 200, "message": "success", "data": null }
+```
+
+### 14.2 全部标记已读
+
+```
+POST /api/notification/readAll
+```
+
+> **需认证**
+
+将当前用户所有未读消息一次性标记为已读。
+
+**响应**
+
+```json
+{ "code": 200, "message": "success", "data": null }
+```
+
+**NotificationMessage 实体字段**
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| id | long | 主键 |
+| userId | long | 消息接收用户 ID |
+| caseId | long | 关联案件 ID |
+| deadlineId | long | 关联案件期限 ID |
+| title | string | 消息标题 |
+| content | string | 消息正文详情 |
+| link | string | 消息跳转路径（前端路由） |
+| isRead | int | 0 未读 / 1 已读 |
+| isPushed | int | 0 未推送 / 1 已推送 |
+| plannedSendTime | datetime | 计划推送时间（规则计算得出） |
+| actualSendTime | datetime | 实际推送时间 |
+| isEstimateCalc | int | 0 精确计算 / 1 使用默认天数估算 |
+| createTime | datetime | 创建时间 |
+| readTime | datetime | 阅读时间 |
+
+---
+
+## 十五、WebSocket 实时推送 `/ws`
+
+> 前端通过 WebSocket 连接接收实时通知，无需轮询 HTTP 接口。
+
+### 连接信息
+
+| 项目 | 值 |
+|------|-----|
+| 端点 | `ws://host:5050/ws` |
+| 认证 | 连接时通过 `token` 查询参数携带 JWT，由 `JwtWsInterceptor` 校验 |
+| 子协议 | 无 |
+
+### 连接示例
+
+```
+ws://localhost:5050/ws?token=eyJhbGciOiJIUzI1NiJ9...
+```
+
+### 下行消息格式
+
+服务端向客户端推送的 JSON：
+
+```json
+{
+  "type": "NOTIFICATION",
+  "message": {
+    "id": 1,
+    "title": "案件时限提醒",
+    "content": "案件 [P2025101] 一种新型散热装置 的申请日止期将于 2026-08-15 到期，请及时处理",
+    "link": "/patent/detail/1",
+    "createTime": "2026-08-01T09:00:00"
+  }
+}
+```
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| type | string | 消息类型，目前为 `NOTIFICATION` |
+| message | object | NotificationMessage 核心字段（id / title / content / link / createTime） |
+
+### 在线状态
+
+服务端通过 `WsOnlineEvent` 管理在线用户集合。用户 WebSocket 连接建立后立即推送该用户未读消息（`isPushed=0`），推送成功后更新 `isPushed=1` 和 `actualSendTime`。
 
 ---
 

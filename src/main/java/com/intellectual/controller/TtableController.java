@@ -83,6 +83,8 @@ public class TtableController {
                        @RequestParam(required = false) String applicant,
                        @RequestParam(required = false) String inventor,
                        @RequestParam(required = false) String agent,
+                       @RequestParam(required = false) String mentor,
+                       @RequestParam(required = false) String businessPersonnel,
                        @RequestParam(required = false) String sponsor,
                        @RequestParam(required = false) Long sponsorUserId,
                        @RequestParam(required = false) String contactPerson,
@@ -107,6 +109,9 @@ public class TtableController {
                 .like(applicant != null && !applicant.isBlank(), PatentDisclosure::getApplicant, applicant)
                 .like(inventor != null && !inventor.isBlank(), PatentDisclosure::getInventor, inventor)
                 .like(agent != null && !agent.isBlank(), PatentDisclosure::getAgent, agent)
+                .like(mentor != null && !mentor.isBlank(), PatentDisclosure::getMentor, mentor)
+                .like(businessPersonnel != null && !businessPersonnel.isBlank(),
+                        PatentDisclosure::getBusinessPersonnel, businessPersonnel)
                 .like(sponsor != null && !sponsor.isBlank(), PatentDisclosure::getSponsor, sponsor)
                 .eq(sponsorUserId != null, PatentDisclosure::getSponsorUserId, sponsorUserId)
                 .like(contactPerson != null && !contactPerson.isBlank(), PatentDisclosure::getContactPerson, contactPerson)

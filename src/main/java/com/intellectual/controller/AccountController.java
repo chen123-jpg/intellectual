@@ -1,5 +1,6 @@
 package com.intellectual.controller;
 
+import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.intellectual.exception.BusinessException;
 import com.intellectual.model.constants.Constants;
 import com.intellectual.model.constants.ExceptionConstants;
@@ -8,8 +9,11 @@ import com.intellectual.model.dto.LoginDto;
 import com.intellectual.model.dto.LoginResult;
 import com.intellectual.model.dto.RegisterDto;
 import com.intellectual.model.dto.Result;
+import com.intellectual.model.entity.Mail;
 import com.intellectual.redis.RedisUtils;
 import com.intellectual.security.LoginUser;
+import com.intellectual.service.MailService;
+import com.intellectual.service.NotificationMessageService;
 import com.intellectual.service.UserService;
 import com.wf.captcha.ArithmeticCaptcha;
 import lombok.extern.slf4j.Slf4j;
@@ -35,6 +39,10 @@ public class AccountController {
 
     @Autowired
     private UserService userService;
+    @Autowired
+    private MailService mailService;
+    @Autowired
+    private NotificationMessageService notificationMessageService;
 
     /**
      * 生成算术图形验证码
@@ -165,11 +173,23 @@ public class AccountController {
         if (loginUser == null) {
             return Result.fail("未登录", 401);
         }
+
+        boolean authCode = false;
+        Mail mail = mailService.getOne(Wrappers.lambdaQuery(Mail.class).eq(Mail::getEmail,loginUser.getEmail()));
+        if(mail != null){
+            String code = mail.getAuthCode();
+            //不为null，且去掉空格不为空
+            if(code != null && !code.trim().isEmpty()){
+                authCode = true;
+            }
+        }
+
         Map<String, Object> userInfo = new HashMap<>();
         userInfo.put("userId", loginUser.getUserId());
         userInfo.put("loginName", loginUser.getLoginName());
         userInfo.put("roles", loginUser.getRoles());
         userInfo.put("email",loginUser.getEmail());
+        userInfo.put("authCode",authCode);
         userInfo.put("permissions", loginUser.getPermissions());
         return Result.success(userInfo);
     }

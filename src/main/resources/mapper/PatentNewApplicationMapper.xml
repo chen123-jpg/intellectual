@@ -11,6 +11,8 @@
     <result column="inventor" jdbcType="VARCHAR" property="inventor"/>
     <result column="sponsor" jdbcType="VARCHAR" property="sponsor"/>
     <result column="agent" jdbcType="VARCHAR" property="agent"/>
+    <result column="mentor" jdbcType="VARCHAR" property="mentor"/>
+    <result column="business_personnel" jdbcType="VARCHAR" property="businessPersonnel"/>
     <result column="application_date" jdbcType="DATE" property="applicationDate"/>
     <result column="notification" jdbcType="VARCHAR" property="notification"/>
     <result column="issue_date" jdbcType="DATE" property="issueDate"/>
@@ -25,8 +27,8 @@
     <result column="update_time" jdbcType="TIMESTAMP" property="updateTime"/>
   </resultMap>
   <sql id="Base_Column_List">
-    id, internal_no, patent_name, application_no, applicant, inventor, sponsor, 
-	agent, application_date, notification, issue_date, pre_exam_mark, payment_deadline, fee_amount, 
+    id, internal_no, patent_name, application_no, applicant, inventor, sponsor,
+    agent, mentor, business_personnel, application_date, notification, issue_date, pre_exam_mark, payment_deadline, fee_amount,
 	payment_date, seq_no, patent_type, das_code, create_time, update_time
   </sql>
 </mapper>

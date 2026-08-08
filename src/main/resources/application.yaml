@@ -5,9 +5,9 @@ spring:
   application:
     name: intellectual
   datasource:
-    url: "jdbc:mysql://47.109.39.226:3306/intellectual-property?useSSL=false&serverTimezone=Asia/Shanghai&useUnicode=true&characterEncoding=utf8&charset=utf8mb4"
-    username: root
-    password: 060803
+    url: jdbc:mysql://localhost:2006/intellectual-property?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=Asia/Shanghai
+    username: ${DB_USER:chen}
+    password: ${DB_PASSWORD:Cc20060706.}
     driver-class-name: com.mysql.cj.jdbc.Driver
 
   servlet:

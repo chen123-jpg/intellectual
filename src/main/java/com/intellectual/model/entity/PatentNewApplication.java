@@ -31,51 +31,63 @@ public class PatentNewApplication implements Serializable {
     /**
      * 内部编号
      */
-    
+
     @TableField(condition = SqlCondition.LIKE)
     private String internalNo;
 
     /**
      * 发明创造名称
      */
-    
+
     @TableField(condition = SqlCondition.LIKE)
     private String patentName;
 
     /**
      * 申请号/专利号
      */
-    
+
     @TableField(condition = SqlCondition.LIKE)
     private String applicationNo;
 
     /**
      * 申请人
      */
-    
+
     @TableField(condition = SqlCondition.LIKE)
     private String applicant;
 
     /**
      * 发明人
      */
-    
+
     @TableField(condition = SqlCondition.LIKE)
     private String inventor;
 
     /**
      * 主办人
      */
-    
+
     @TableField(condition = SqlCondition.LIKE)
     private String sponsor;
 
     /**
      * 委托书代理人
      */
-    
+
     @TableField(condition = SqlCondition.LIKE)
     private String agent;
+
+    /**
+     * 指导人
+     */
+    @TableField(condition = SqlCondition.LIKE)
+    private String mentor;
+
+    /**
+     * 业务人员
+     */
+    @TableField(condition = SqlCondition.LIKE)
+    private String businessPersonnel;
 
     /**
      * 申请日
@@ -85,7 +97,7 @@ public class PatentNewApplication implements Serializable {
     /**
      * 通知书（状态子列）
      */
-    
+
     @TableField(condition = SqlCondition.LIKE)
     private String notification;
 
@@ -97,7 +109,7 @@ public class PatentNewApplication implements Serializable {
     /**
      * 非正标-预审标（状态子列）
      */
-    
+
     @TableField(condition = SqlCondition.LIKE)
     private String preExamMark;
 
@@ -114,7 +126,7 @@ public class PatentNewApplication implements Serializable {
     /**
      * 缴费时间（费用子列）
      */
-    
+
     @TableField(condition = SqlCondition.LIKE)
     private String paymentDate;
 
@@ -131,7 +143,7 @@ public class PatentNewApplication implements Serializable {
     /**
      * DAS码
      */
-    
+
     @TableField(condition = SqlCondition.LIKE)
     private String dasCode;
 
@@ -144,4 +156,6 @@ public class PatentNewApplication implements Serializable {
      * 更新时间
      */
     private Date updateTime;
+
+
 }

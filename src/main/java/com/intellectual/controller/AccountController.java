@@ -76,10 +76,7 @@ public class AccountController {
      * @return
      */
     @GetMapping("/getSmsCode")
-    public Result sendSmsCode(@RequestParam String mobile, 
-                              @RequestParam String checkCode, 
-                              @RequestParam String checkCodeKey) {
-        validateCheckCode(checkCodeKey, checkCode);
+    public Result sendSmsCode(@RequestParam String mobile) {
         
         if(redisUtils.hasKey(Constants.REDIS_MOBILE_CHECK_CODE+mobile)&& redisUtils.getExpire(Constants.REDIS_MOBILE_CHECK_CODE+mobile)>240L) {
             long remainTime = redisUtils.getExpire(Constants.REDIS_MOBILE_CHECK_CODE+mobile);

@@ -127,24 +127,26 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     public LoginResult login(LoginDto loginDto) {
         // 1. 查询用户
         User user = new User();
-        if(loginDto.getLoginName() != null) {
+        if ("account".equals(loginDto.getLoginType())) {
             user = userMapper.selectOne(
                     Wrappers.lambdaQuery(User.class).eq(User::getLoginName, loginDto.getLoginName()));
             if (user == null) {
                 throw new BusinessException("账号或密码错误");
             }
-        } else if (loginDto.getPhoneNumber() != null) {
+            // 2. 校验密码（统一返回"账号或密码错误"，避免信息泄露）
+            if (!PasswordUtils.matches(loginDto.getPassword(), user.getPassword())) {
+                throw new BusinessException("账号或密码错误");
+            }
+        } else if ("phone".equals(loginDto.getLoginType())) {
             user = userMapper.selectOne(
                     Wrappers.lambdaQuery(User.class).eq(User::getPhoneNumber, loginDto.getPhoneNumber()));
             if (user == null) {
-                throw new BusinessException("手机号或密码错误");
+                throw new BusinessException("该手机号未注册用户");
             }
+        } else {
+            throw new BusinessException("不支持的登录类型");
         }
 
-        // 2. 校验密码（统一返回"账号或密码错误"，避免信息泄露）
-        if (!PasswordUtils.matches(loginDto.getPassword(), user.getPassword())) {
-            throw new BusinessException("账号或密码错误");
-        }
         // 3. 检查账号状态
         if (!"0".equals(user.getStatus())) {
             throw new BusinessException("账号已被停用");

@@ -66,7 +66,11 @@ public class AccountController {
      * @return
      */
     @GetMapping("/getSmsCode")
-    public Result sendSmsCode(@RequestParam String mobile) {
+    public Result sendSmsCode(@RequestParam String mobile, 
+                              @RequestParam String checkCode, 
+                              @RequestParam String checkCodeKey) {
+        validateCheckCode(checkCodeKey, checkCode);
+        
         if(redisUtils.hasKey(Constants.REDIS_MOBILE_CHECK_CODE+mobile)&& redisUtils.getExpire(Constants.REDIS_MOBILE_CHECK_CODE+mobile)>240L) {
             long remainTime = redisUtils.getExpire(Constants.REDIS_MOBILE_CHECK_CODE+mobile);
             String msg = "验证发送过于频繁，请 "+ (remainTime-240) +" 秒后再试！";
@@ -110,12 +114,27 @@ public class AccountController {
      */
     @PostMapping("/login")
     public Result login(@RequestBody LoginDto loginDto) {
-        log.info("用户：{}，开始登录", loginDto.getLoginName());
+        log.info("用户：{}，开始登录，登录类型：{}", loginDto.getLoginName() != null ? loginDto.getLoginName() : loginDto.getPhoneNumber(), loginDto.getLoginType());
         try {
             validateCheckCode(loginDto.getCheckCodeKey(), loginDto.getCheckCode());
-            validateSmsCode(loginDto.getPhoneNumber(), loginDto.getSmsCode());
+            // 验证码验证通过后，立即删除验证码缓存
+            redisUtils.del(Constants.REDIS_KEY_CHECK_CODE + loginDto.getCheckCodeKey());
+
+            if ("account".equals(loginDto.getLoginType())) {
+                if (loginDto.getLoginName() == null || loginDto.getPassword() == null) {
+                    throw new BusinessException("账号和密码不能为空");
+                }
+            } else if ("phone".equals(loginDto.getLoginType())) {
+                if (loginDto.getPhoneNumber() == null || loginDto.getSmsCode() == null) {
+                    throw new BusinessException("手机号和验证码不能为空");
+                }
+                validateSmsCode(loginDto.getPhoneNumber(), loginDto.getSmsCode());
+            } else {
+                throw new BusinessException("不支持的登录类型");
+            }
+            
             LoginResult loginResult = userService.login(loginDto);
-            log.info("登录成功: {}", loginDto.getLoginName());
+            log.info("登录成功: {}", loginDto.getLoginName() != null ? loginDto.getLoginName() : loginDto.getPhoneNumber());
             return Result.success(loginResult, "登录成功");
         } catch (BusinessException e) {
             log.error("登录失败: {}", e.getMessage());

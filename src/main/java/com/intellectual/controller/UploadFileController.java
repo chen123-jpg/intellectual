@@ -34,4 +34,13 @@ public class UploadFileController {
             @RequestParam(value = "name", required = false) String originalName) {
         return uploadFileService.getFile(fileId,originalName);
     }
+
+    /**
+     * 删除已上传文件 - 传入文件ID（uuid.ext）
+     */
+    @DeleteMapping({"/files/{fileId}", "/api/files/{fileId}"})
+    public Result<Void> deleteFile(@PathVariable String fileId) {
+        boolean ok = uploadFileService.deleteByFileId(fileId);
+        return ok ? Result.successMsg("删除成功") : Result.fail("删除失败或文件不存在");
+    }
 }

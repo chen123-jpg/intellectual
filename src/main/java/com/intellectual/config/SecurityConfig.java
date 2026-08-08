@@ -64,6 +64,9 @@ public class SecurityConfig {
                     "/ws/**"
                 ).permitAll()
                 .requestMatchers(HttpMethod.OPTIONS).permitAll()
+                // 已上传文件（/files/**）允许匿名读取，浏览器 <img> 原生请求无法携带 JWT；
+                // 上传(POST)与删除(DELETE)仍要求认证
+                .requestMatchers(HttpMethod.GET, "/files/**", "/api/files/**").permitAll()
                 .anyRequest().authenticated()
             )
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);

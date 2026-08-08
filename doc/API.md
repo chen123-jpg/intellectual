@@ -2,7 +2,7 @@
 
 ## 基础信息
 
-- **Base URL**: `http://localhost:5050`
+- **Base URL**: `http://localhost:8080`
 - **认证方式**: JWT Bearer Token（登录后获取，除公开接口外均需在 Header 中携带）
 - **Token 有效期**: 24 小时
 
@@ -80,14 +80,16 @@ GET /api/acount/getSmsCode
 | 参数 | 类型 | 必填 | 说明 |
 |------|------|------|------|
 | mobile | string | 是 | 手机号码（`1[3-9]` 开头 11 位） |
+| checkCodeKey | string | 是 | 图形验证码 Key（来自 `checkCode` 接口） |
+| checkCode | string | 是 | 用户输入的图形验证码结果，用于人机校验 |
 
 **响应**
 
 ```json
-{ "code": 200, "message": "验证码发送成功", "data": null }
+{ "code": 200, "message": "验证码发送成功", "data": { "code": "123456" } }
 ```
 
-> 验证码 5 分钟内有效，同一手机号 60 秒内不允许重复发送。验证码存入 Redis，登录/注册时校验后立即删除。
+> 验证码 5 分钟内有效，同一手机号 60 秒内不允许重复发送（剩余有效期大于 4 分钟时拒绝重发）。验证码存入 Redis，登录/注册时校验后立即删除。`checkCode` 与 `checkCodeKey` 校验通过后才允许发送，校验失败返回 `code: 500`。
 
 ---
 
@@ -145,16 +147,27 @@ POST /api/acount/register
 POST /api/acount/login
 ```
 
-> **公开接口**。支持两种登录方式：**账号+密码** 或 **手机号+密码**，均需提供手机验证码和图形验证码。
+> **公开接口**。支持两种登录方式，通过 `loginType` 区分：`account`（账号+密码）或 `phone`（手机号+短信验证码）。两种方式均需先通过图形验证码校验。
 
 **请求体** (JSON)
 
 ```json
 {
+  "loginType": "account",
   "loginName": "zhangsan",
+  "password": "123456",
+  "checkCodeKey": "uuid-from-checkCode",
+  "checkCode": "8"
+}
+```
+
+`phone` 登录示例：
+
+```json
+{
+  "loginType": "phone",
   "phoneNumber": "13800138000",
   "smsCode": "123456",
-  "password": "123456",
   "checkCodeKey": "uuid-from-checkCode",
   "checkCode": "8"
 }
@@ -162,10 +175,11 @@ POST /api/acount/login
 
 | 字段 | 类型 | 必填 | 说明 |
 |------|------|------|------|
-| loginName | string | 否 | 登录账号（与 phoneNumber 二选一，优先使用 loginName） |
-| phoneNumber | string | 否 | 手机号（loginName 为空时使用） |
-| smsCode | string | 是 | 6 位手机验证码 |
-| password | string | 是 | 密码 |
+| loginType | string | 是 | 登录类型：`account` 或 `phone`，其他值返回 `不支持的登录类型` |
+| loginName | string | 否 | 登录账号（`account` 方式必填） |
+| phoneNumber | string | 否 | 手机号（`phone` 方式必填，`1[3-9]` 开头 11 位） |
+| smsCode | string | 否 | 6 位手机短信验证码（`phone` 方式必填，校验通过后立即删除） |
+| password | string | 否 | 密码（`account` 方式必填，6~20 位） |
 | checkCodeKey | string | 否 | 图形验证码 Key |
 | checkCode | string | 是 | 图形验证码结果 |
 
@@ -228,11 +242,13 @@ GET /api/acount/me
     "loginName": "zhangsan",
     "roles": ["admin"],
     "email": "123456@qq.com",
+    "authCode": true,
     "permissions": ["system:user:list", "patent:disclosure:list"]
   }
 }
 ```
 
+> `authCode` 表示当前用户邮箱是否已配置 SMTP 授权码（`mail` 表对应邮箱存在非空授权码时为 `true`），用于前端判断是否允许发送邮件。
 > 未登录返回 `code: 401, message: "未登录"`
 
 ---
@@ -524,7 +540,9 @@ POST /api/excel/import
 
 ## 三、用户角色接口 `/sys-user-role`
 
-> 对应数据表：`sys_user_role`（用户-角色关联表，无独立详情/修改接口）
+> 对应数据表：`sys_user_role`（用户-角色关联表，无独立详情接口）
+>
+> 兼容前缀：控制器同时映射 `/api/sys-user-role`，即 `/api/sys-user-role/list` 与 `/sys-user-role/list` 等价。
 
 ### 3.1 分页列表
 
@@ -603,6 +621,8 @@ DELETE /sys-user-role/batch
 ## 四、角色接口 `/sys-role`
 
 > 对应数据表：`sys_role`
+>
+> 兼容前缀：控制器同时映射 `/api/sys-role`，即 `/api/sys-role/list` 与 `/sys-role/list` 等价。
 
 ### 4.1 分页列表
 
@@ -699,7 +719,9 @@ DELETE /sys-role/batch
 
 ## 五、角色菜单接口 `/sys-role-menu`
 
-> 对应数据表：`sys_role_menu`（角色-菜单关联表，无独立详情/修改接口）
+> 对应数据表：`sys_role_menu`（角色-菜单关联表，无独立详情接口）
+>
+> 兼容前缀：控制器同时映射 `/api/sys-role-menu`，即 `/api/sys-role-menu/list` 与 `/sys-role-menu/list` 等价。
 
 ### 5.1 分页列表
 
@@ -778,6 +800,8 @@ DELETE /sys-role-menu/batch
 ## 六、菜单接口 `/sys-menu`
 
 > 对应数据表：`sys_menu`
+>
+> 兼容前缀：控制器同时映射 `/api/sys-menu`，即 `/api/sys-menu/list` 与 `/sys-menu/list` 等价。
 
 ### 6.1 分页列表
 
@@ -874,6 +898,57 @@ DELETE /sys-menu/batch
 > 需权限：`system:menu:delete`
 
 **请求体** (JSON) — `[1, 2, 3]`
+
+### 6.8 菜单树
+
+```
+GET /sys-menu/tree
+```
+
+> **需认证**（根据当前用户权限过滤，无权限标识的菜单/目录所有人可见；结果按 `orderNum` 升序构建父子层级）
+
+**响应** — `data` 为菜单树数组，节点含菜单核心字段，有子节点时附加 `children`：
+
+```json
+[
+  {
+    "menuId": 1,
+    "menuName": "系统管理",
+    "parentId": 0,
+    "orderNum": 1,
+    "url": "/system",
+    "target": "menuItem",
+    "module": null,
+    "menuType": "M",
+    "visible": "0",
+    "isRefresh": "0",
+    "perms": null,
+    "icon": "system",
+    "remark": null,
+    "children": [
+      { "menuId": 2, "menuName": "用户管理", "parentId": 1, "menuType": "C", "perms": "system:user:list" }
+    ]
+  }
+]
+```
+
+> 与 `/all` 一样按用户权限集做 Redis 缓存（Key 含权限 hash，30 分钟过期）。`/all`、`/tree` 均无独立权限要求，仅需登录。
+
+### 6.9 清除菜单缓存
+
+```
+DELETE /sys-menu/cache
+```
+
+> 需权限：`system:menu:edit`
+
+删除全部菜单列表与菜单树缓存（按 ID 的单条缓存随自然过期，不在此接口清除）。
+
+**响应**
+
+```json
+{ "code": 200, "message": "菜单缓存已清除", "data": null }
+```
 
 ---
 
@@ -979,7 +1054,7 @@ DELETE /api/mail-template/batch
 POST /upload
 ```
 
-> **需认证**
+> **需认证**。控制器同时映射 `/api/upload`，两者等价。
 > Content-Type: `multipart/form-data`
 
 **请求参数** (FormData)
@@ -1007,7 +1082,7 @@ POST /upload
 GET /files/{fileId}
 ```
 
-> **需认证**
+> **公开接口**，无需认证。`/api/files/{fileId}` 等价。允许匿名读取是为了让浏览器 `<img>` 等原生请求无需携带 JWT 即可预览图片/PDF。
 
 **路径参数**
 
@@ -1022,6 +1097,30 @@ GET /files/{fileId}
 | name | string | 否 | 原始文件名，用于设置下载响应头 |
 
 **响应** — 文件二进制流，浏览器根据 Content-Type 决定预览或下载
+
+---
+
+### 8.3 删除文件
+
+```
+DELETE /files/{fileId}
+```
+
+> **需认证**。`/api/files/{fileId}` 等价。
+
+**路径参数**
+
+| 参数 | 说明 |
+|------|------|
+| fileId | 上传后返回的文件 ID（含扩展名，如 `a1b2c3d4.pdf`） |
+
+**响应** — 成功
+
+```json
+{ "code": 200, "message": "删除成功", "data": null }
+```
+
+> 文件不存在或已删除返回 `code: 500, message: "删除失败或文件不存在"`。
 
 ---
 
@@ -1049,11 +1148,28 @@ POST /api/mail/sendMaill
 | files | file | 否 | — | 附件文件，发送成功后会记录到 `mail_send_attachment` 表 |
 | disclosureAttachmentIds | long[] | 否 | — | 关联的交底附件ID列表，用于标记附件来源，逗号分隔 |
 
-**响应**
+**响应** — 成功时 `data` 为创建的 `MailSendLog` 对象（`sendStatus` 初始为 `PENDING`）：
 
 ```json
-{ "code": 200, "message": "success", "data": null }
+{
+  "code": 200,
+  "message": "发送成功",
+  "data": {
+    "id": 1024,
+    "disclosureId": 1,
+    "fromEmail": "zhangsan@example.com",
+    "toEmails": "receiver@example.com",
+    "subject": "邮件主题",
+    "sendStatus": 1,
+    "senderUserId": 1,
+    "senderName": "zhangsan",
+    "sentAt": "2026-08-08T10:00:00",
+    "createTime": "2026-08-08T10:00:00"
+  }
+}
 ```
+
+> 发送前必须已在个人中心保存邮箱 SMTP 授权码，否则返回 `code: 500, message: "未填写授权码，请在个人中心填写后重试"`。发送失败时返回 `code: 500`，`data` 为 `null`，失败原因同时写入该日志的 `errorMessage`。
 
 ---
 
@@ -1091,12 +1207,40 @@ POST /api/mail/sendMailWithTemplate
 | disclosureId | long | 否 | 关联专利交底ID，非必填 |
 | to | string | 是 | 收件人，逗号/分号分隔多人 |
 | cc | string | 否 | 抄送，逗号/分号分隔多人 |
+| bcc | string | 否 | 密送，逗号/分号分隔多人 |
 | subject | string | 否 | 主题（模板优先时可为空） |
 | text | string | 否 | 正文（模板优先时可为空） |
 | templateCode | string | 否 | 模板编码，选用模板时传入 |
 | templateData | map | 否 | 模板变量，用于 Thymeleaf 渲染 |
 | attachmentUrls | string[] | 否 | 附件 URL 列表，来自上传接口返回的路径，发送成功后会记录到 `mail_send_attachment` 表 |
 | disclosureAttachmentIds | long[] | 否 | 关联的交底附件ID列表，与attachmentUrls按索引一一对应，用于标记附件来源 |
+
+> 图片类附件（`.jpg`/`.png` 等）会被作为内联图片处理：若正文以 `<img src="文件URL">` 引用该 URL 或正文包含该 URL，则替换为 `cid:` 内联引用，保证图片随邮件展示。
+
+### 9.2.1 模板渲染预览
+
+```
+POST /api/mail/renderPreview
+```
+
+> **需认证**
+
+**请求体** (JSON) — `MailRequest` 对象，与 9.2 相同，仅使用 `templateCode` 与 `templateData`；`templateCode` 必填，需为已启用的模板。
+
+**响应** — 渲染后的主题与正文，不发送邮件：
+
+```json
+{
+  "code": 200,
+  "message": "success",
+  "data": {
+    "subject": "知识产权案件提醒 - 张三",
+    "content": "<html><body>您好，张三……</body></html>"
+  }
+}
+```
+
+> 模板不存在或未启用返回 `code: 500, message: "模板不存在或未启用"`；未传 `templateCode` 返回 `code: 500, message: "请选择模板"`。
 
 ---
 
@@ -1299,19 +1443,39 @@ GET /api/ttable/list
 
 > 需权限：`patent:disclosure:list`
 >
-> 当登录用户角色包含 `projectInitiator` 且不包含 `admin` 时，只返回 `entryUserId` 为当前用户的数据；`search`、`all`、`by-sponsor` 遵循同一数据范围。
+> 当登录用户角色包含 `projectInitiator` 且不包含 `admin` 时，只返回 `entryUserId` 为当前用户的数据；`organizer`（主办人）只返回分配给自己的交底；`list`、`all`、`by-sponsor` 遵循同一数据范围。
+>
+> 本接口同时承担高级搜索，所有业务字段均可作为 Query 参数参与筛选，未传字段不参与过滤。
 
 **请求参数** (Query)
 
-| 参数 | 类型 | 必填 | 默认值 | 说明 |
-|------|------|------|--------|------|
-| pageNum | int | 否 | 1 | 页码 |
-| pageSize | int | 否 | 10 | 每页条数 |
-| disclosureName | string | 否 | — | 交底名称（模糊匹配） |
-| patentType | string | 否 | — | 专利类型（精确匹配） |
-| patentStatus | string | 否 | — | 专利状态（精确匹配） |
-| internalNo | string | 否 | — | 内部编号（精确匹配） |
-| applicant | string | 否 | — | 申请人（模糊匹配） |
+| 参数 | 类型 | 必填 | 默认值 | 匹配方式 | 说明 |
+|------|------|------|--------|----------|------|
+| pageNum | int | 否 | 1 | — | 页码 |
+| pageSize | int | 否 | 10 | — | 每页条数 |
+| disclosureName | string | 否 | — | 模糊 | 交底名称 |
+| patentType | string | 否 | — | 精确 | 专利类型 |
+| patentStatus | string | 否 | — | 精确 | 专利状态 |
+| internalNo | string | 否 | — | 模糊 | 内部编号 |
+| tempNo | string | 否 | — | 模糊 | 临时编号 |
+| applicant | string | 否 | — | 模糊 | 申请人 |
+| inventor | string | 否 | — | 模糊 | 发明人 |
+| agent | string | 否 | — | 模糊 | 代理人 |
+| mentor | string | 否 | — | 模糊 | 指导人 |
+| businessPersonnel | string | 否 | — | 模糊 | 业务人员 |
+| sponsor | string | 否 | — | 模糊 | 主办人 |
+| sponsorUserId | long | 否 | — | 精确 | 主办人用户ID |
+| contactPerson | string | 否 | — | 模糊 | 联系人 |
+| manager | string | 否 | — | 模糊 | 管理者/负责人 |
+| requirement | string | 否 | — | 模糊 | 需求 |
+| remark | string | 否 | — | 模糊 | 备注 |
+| contactInfo | string | 否 | — | 模糊 | 联系方式 |
+| contactEmail | string | 否 | — | 模糊 | 联系邮箱 |
+| contactPhone | string | 否 | — | 模糊 | 联系电话 |
+| entryUserName | string | 否 | — | 模糊 | 录入人 |
+| syncedToPatent | int | 否 | — | 精确 | 0 未同步 1 已同步 |
+| disclosureDateStart / disclosureDateEnd | string | 否 | — | 区间 | 交底日期范围（YYYY-MM-DD） |
+| createTimeStart / createTimeEnd | string | 否 | — | 区间 | 创建时间范围 |
 
 **响应**
 
@@ -1372,32 +1536,11 @@ GET /api/ttable/list
 }
 ```
 
-`attachmentsByDisclosureId` 只包含当前页记录的未删除附件，以交底 ID 分组；`bizType` 为 `DISCLOSURE_DOC` 时表示交底书，为 `DISCLOSURE_OTHER` 时表示其他文件。列表页可直接使用该字段展示附件，无需逐行请求附件接口。高级搜索分页响应使用相同结构。
+`attachmentsByDisclosureId` 只包含当前页记录的未删除附件，以交底 ID 分组；`bizType` 为 `DISCLOSURE_DOC` 时表示交底书，为 `DISCLOSURE_OTHER` 时表示其他文件。列表页可直接使用该字段展示附件，无需逐行请求附件接口。
 
 ### 10.2 高级搜索
 
-```
-POST /api/ttable/search?pageNum=1&pageSize=10
-```
-
-> 需权限：`patent:disclosure:list`
-
-**请求体** (JSON) — `PatentDisclosure` 对象，所有字段均为可选，传入非 null 字段参与筛选：
-
-| 字段 | 匹配方式 | 说明 |
-|------|----------|------|
-| disclosureName | 模糊 | 交底名称 |
-| patentType | 精确 | 专利类型 |
-| patentStatus | 精确 | 专利状态 |
-| internalNo | 精确 | 内部编号 |
-| tempNo | 精确 | 临时编号 |
-| applicant | 模糊 | 申请人 |
-| inventor | 模糊 | 发明人 |
-| agent | 模糊 | 代理人 |
-| sponsor | 模糊 | 主办人 |
-| sponsorUserId | 精确 | 主办人用户ID |
-| contactPerson | 模糊 | 联系人 |
-| syncedToPatent | 精确 | 0 未同步 1 已同步 |
+> 已合并至 10.1 分页列表接口，不再提供独立的 `POST /api/ttable/search`。所有筛选条件均作为 `GET /api/ttable/list` 的 Query 参数传入，参数与匹配方式见 10.1 请求参数表。
 
 ### 10.3 全部列表（不分页）
 
@@ -1764,9 +1907,23 @@ DELETE /api/ttable/attachments/{attachmentId}
 | 参数 | 类型 | 匹配方式 |
 |------|------|----------|
 | patentName | string | 模糊 |
-| applicationNo | string | 精确 |
+| applicationNo | string | 模糊 |
 | patentType | string | 精确 |
 | applicant | string | 模糊 |
+| internalNo | string | 模糊 |
+| inventor | string | 模糊 |
+| sponsor | string | 模糊 |
+| agent | string | 模糊 |
+| mentor | string | 模糊 |
+| businessPersonnel | string | 模糊 |
+| notification | string | 模糊 |
+| preExamMark | string | 模糊 |
+| paymentDate | string | 模糊 |
+| dasCode | string | 模糊 |
+| applicationDateStart / applicationDateEnd | string | 区间（申请日） |
+| issueDateStart / issueDateEnd | string | 区间（发文日） |
+| paymentDeadlineStart / paymentDeadlineEnd | string | 区间（缴费止期） |
+| createTimeStart / createTimeEnd | string | 区间（创建时间） |
 
 **实体字段** — `PatentNewApplication`
 
@@ -1780,6 +1937,8 @@ DELETE /api/ttable/attachments/{attachmentId}
 | inventor | string | 发明人 |
 | sponsor | string | 主办人 |
 | agent | string | 委托书代理人 |
+| mentor | string | 指导人 |
+| businessPersonnel | string | 业务人员 |
 | applicationDate | date | 申请日 |
 | notification | string | 通知书 |
 | issueDate | date | 发文日 |
@@ -2358,14 +2517,14 @@ POST /api/notification/readAll
 
 | 项目 | 值 |
 |------|-----|
-| 端点 | `ws://host:5050/ws` |
+| 端点 | `ws://host:8080/ws` |
 | 认证 | 连接时通过 `token` 查询参数携带 JWT，由 `JwtWsInterceptor` 校验 |
 | 子协议 | 无 |
 
 ### 连接示例
 
 ```
-ws://localhost:5050/ws?token=eyJhbGciOiJIUzI1NiJ9...
+ws://localhost:8080/ws?token=eyJhbGciOiJIUzI1NiJ9...
 ```
 
 ### 下行消息格式

@@ -72,6 +72,25 @@ public class UploadFileServiceImpl {
         }
     }
 
+    /** 删除本服务上传的文件（按文件ID，如 uuid.ext），仅限上传目录内。 */
+    public boolean deleteByFileId(String fileId) {
+        if (fileId == null || fileId.isBlank() || fileId.contains("/") || fileId.contains("\\")) {
+            log.warn("拒绝删除非法文件路径: {}", fileId);
+            return false;
+        }
+        Path targetPath = uploadPath.resolve(fileId).normalize();
+        if (!targetPath.startsWith(uploadPath)) {
+            log.warn("拒绝删除上传目录外文件: {}", targetPath);
+            return false;
+        }
+        try {
+            return Files.deleteIfExists(targetPath);
+        } catch (IOException e) {
+            log.error("删除上传文件失败: {}", targetPath, e);
+            return false;
+        }
+    }
+
     /** 删除本服务上传的文件，用于数据库事务失败时补偿文件系统。 */
     public boolean deleteByUrl(String fileUrl) {
         if (fileUrl == null || fileUrl.isBlank()) {

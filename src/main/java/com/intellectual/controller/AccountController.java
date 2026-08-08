@@ -39,8 +39,10 @@ public class AccountController {
 
     @Autowired
     private UserService userService;
+
     @Autowired
     private MailService mailService;
+
     @Autowired
     private NotificationMessageService notificationMessageService;
 

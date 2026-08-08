@@ -13,10 +13,15 @@ import com.intellectual.model.enums.MailSendStatus;
 import com.intellectual.service.MailSendLogService;
 import com.intellectual.mapper.MailSendLogMapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.core.io.FileSystemResource;
 import org.springframework.mail.javamail.JavaMailSenderImpl;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -29,6 +34,7 @@ import java.util.Properties;
  * @author 陈创
  * @since 2026-07-23 19:09
  */
+@Slf4j
 @Service
 public class MailSendLogServiceImpl extends ServiceImpl<MailSendLogMapper, MailSendLog> implements MailSendLogService {
 
@@ -131,19 +137,19 @@ public class MailSendLogServiceImpl extends ServiceImpl<MailSendLogMapper, MailS
 
     @Override
     public Result resend(Long id) {
-        MailSendLog log = mailSendLogMapper.selectById(id);
-        if (log == null) {
+        MailSendLog sendLog = mailSendLogMapper.selectById(id);
+        if (sendLog == null) {
             return Result.fail("记录不存在");
         }
-        if (log.getSendStatus() == null || log.getSendStatus() != MailSendStatus.FAILED.getCode()) {
+        if (sendLog.getSendStatus() == null || sendLog.getSendStatus() != MailSendStatus.FAILED.getCode()) {
             return Result.fail("仅失败记录支持重新发送");
         }
-        if (log.getSenderUserId() == null) {
+        if (sendLog.getSenderUserId() == null) {
             return Result.fail("发送人信息缺失，无法重新发送");
         }
 
         Mail mail = mailMapper.selectOne(new LambdaQueryWrapper<Mail>()
-                .eq(Mail::getUserId, log.getSenderUserId()));
+                .eq(Mail::getUserId, sendLog.getSenderUserId()));
         if (mail == null) {
             return Result.fail("发送人邮箱配置不存在");
         }
@@ -155,25 +161,56 @@ public class MailSendLogServiceImpl extends ServiceImpl<MailSendLogMapper, MailS
 
             var message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
-            helper.setFrom(log.getFromEmail());
-            helper.setTo(log.getToEmails().split("[,;]"));
-            if (log.getCcEmails() != null && !log.getCcEmails().isBlank()) {
-                helper.setCc(log.getCcEmails().split("[,;]"));
+            helper.setFrom(sendLog.getFromEmail());
+            helper.setTo(sendLog.getToEmails().split("[,;]"));
+            if (sendLog.getCcEmails() != null && !sendLog.getCcEmails().isBlank()) {
+                helper.setCc(sendLog.getCcEmails().split("[,;]"));
             }
-            helper.setSubject(log.getSubject());
-            helper.setText(log.getContent(), true);
+            helper.setSubject(sendLog.getSubject());
+
+            // 重新内联图片并重新挂载附件，与初次发送保持一致
+            List<MailSendAttachment> attachments = mailSendAttachmentMapper.selectList(
+                    Wrappers.lambdaQuery(MailSendAttachment.class)
+                            .eq(MailSendAttachment::getMailSendLogId, id)
+            );
+            String content = sendLog.getContent();
+            for (MailSendAttachment att : attachments) {
+                try {
+                    if (att.getFilePath() == null || att.getFileName() == null) continue;
+                    Path diskPath = Paths.get(att.getFilePath()).toAbsolutePath().normalize();
+                    if (!Files.exists(diskPath)) continue;
+                    if (isImageFile(att.getFileName())) {
+                        String cid = "img-" + System.currentTimeMillis() + "-" + att.getFileName().replaceAll("[^a-zA-Z0-9.]", "_");
+                        helper.addInline(cid, new FileSystemResource(diskPath), inferMimeType(att.getFileName()));
+                        if (att.getFileUrl() != null) {
+                            String srcAttr = "src=\"" + att.getFileUrl() + "\"";
+                            String imgTag = "<img src=\"cid:" + cid + "\" style=\"max-width:100%\" />";
+                            if (content.contains(srcAttr)) {
+                                content = content.replace(srcAttr, "src=\"cid:" + cid + "\"");
+                            } else if (content.contains(att.getFileUrl())) {
+                                content = content.replace(att.getFileUrl(), imgTag);
+                            }
+                        }
+                    } else {
+                        helper.addAttachment(att.getFileName(), new FileSystemResource(diskPath));
+                    }
+                } catch (Exception e) {
+                    log.warn("重发添加附件失败: {}", att.getFileName(), e);
+                }
+            }
+            helper.setText(content, true);
 
             mailSender.send(message);
 
-            log.setSendStatus(MailSendStatus.SUCCESS.getCode());
-            log.setSentAt(new Date());
-            log.setErrorMessage(null);
-            mailSendLogMapper.updateById(log);
+            sendLog.setSendStatus(MailSendStatus.SUCCESS.getCode());
+            sendLog.setSentAt(new Date());
+            sendLog.setErrorMessage(null);
+            mailSendLogMapper.updateById(sendLog);
             return Result.successMsg("重新发送成功");
         } catch (Exception e) {
-            log.setSendStatus(MailSendStatus.FAILED.getCode());
-            log.setErrorMessage(e.getMessage());
-            mailSendLogMapper.updateById(log);
+            sendLog.setSendStatus(MailSendStatus.FAILED.getCode());
+            sendLog.setErrorMessage(e.getMessage());
+            mailSendLogMapper.updateById(sendLog);
             return Result.fail("重新发送失败：" + e.getMessage());
         }
     }
@@ -196,5 +233,24 @@ public class MailSendLogServiceImpl extends ServiceImpl<MailSendLogMapper, MailS
         props.put("mail.smtp.writetimeout", 10000);
         mailSender.setJavaMailProperties(props);
         return mailSender;
+    }
+
+    private boolean isImageFile(String fileName) {
+        if (fileName == null) return false;
+        String lower = fileName.toLowerCase();
+        return lower.endsWith(".jpg") || lower.endsWith(".jpeg") || lower.endsWith(".png")
+                || lower.endsWith(".gif") || lower.endsWith(".webp") || lower.endsWith(".bmp")
+                || lower.endsWith(".svg");
+    }
+
+    private String inferMimeType(String fileName) {
+        if (fileName == null) return "application/octet-stream";
+        String lower = fileName.toLowerCase();
+        if (lower.endsWith(".png")) return "image/png";
+        if (lower.endsWith(".gif")) return "image/gif";
+        if (lower.endsWith(".webp")) return "image/webp";
+        if (lower.endsWith(".bmp")) return "image/bmp";
+        if (lower.endsWith(".svg")) return "image/svg+xml";
+        return "image/jpeg";
     }
 }

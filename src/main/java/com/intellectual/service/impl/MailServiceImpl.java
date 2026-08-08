@@ -36,7 +36,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 
 import org.springframework.core.io.FileSystemResource;
@@ -236,7 +238,7 @@ public class MailServiceImpl extends ServiceImpl<MailMapper, Mail> implements Ma
             subject = request.getSubject() != null && !request.getSubject().isBlank()
                     ? request.getSubject()
                     : templateEngine.process(template.getSubject(), context);
-            content = request.getText() != null && !request.getText().isBlank()
+            content = request.getText() != null
                     ? request.getText()
                     : templateEngine.process(template.getContent(), context);
         } else {
@@ -306,8 +308,8 @@ public class MailServiceImpl extends ServiceImpl<MailMapper, Mail> implements Ma
                                 // URL 作为纯文本出现在正文中，替换为 <img> 标签
                                 content = content.replace(fileUrl, imgTag);
                             } else {
-                                // URL 未在正文中出现，追加到正文末尾
-                                content = content + "<br/>" + imgTag;
+                                // 正文未引用该图片 URL：尊重编辑后的预览内容，不再追加
+                                log.info("图片 URL 未在正文中出现，跳过内联: {}", fileUrl);
                             }
                             log.info("内联图片: {} -> cid:{}", fileUrl, cid);
                         } else {
@@ -357,6 +359,31 @@ public class MailServiceImpl extends ServiceImpl<MailMapper, Mail> implements Ma
             mailSendLogService.updateById(sendLog);
             return Result.fail(buildSendErrorMsg(e));
         }
+    }
+
+    @Override
+    public Result renderPreview(MailRequest request) {
+        if (request.getTemplateCode() == null || request.getTemplateCode().isBlank()) {
+            return Result.fail("请选择模板");
+        }
+        MailTemplate template = mailTemplateService.getOne(
+                new LambdaQueryWrapper<MailTemplate>()
+                        .eq(MailTemplate::getTemplateCode, request.getTemplateCode())
+                        .eq(MailTemplate::getEnabled, 1)
+        );
+        if (template == null) {
+            return Result.fail("模板不存在或未启用");
+        }
+        Context context = new Context();
+        if (request.getTemplateData() != null) {
+            context.setVariables(request.getTemplateData());
+        }
+        String subject = templateEngine.process(template.getSubject(), context);
+        String content = templateEngine.process(template.getContent(), context);
+        Map<String, Object> result = new HashMap<>();
+        result.put("subject", subject);
+        result.put("content", content);
+        return Result.success(result);
     }
 
     private JavaMailSenderImpl createMailSender(String host, Integer port, String username, String password) {

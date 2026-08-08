@@ -40,5 +40,10 @@ public class MailController {
         return mailService.sendMailWithTemplate(request);
     }
 
+    @PostMapping("renderPreview")
+    public Result renderPreview(@RequestBody MailRequest request){
+        return mailService.renderPreview(request);
+    }
+
 
 }
